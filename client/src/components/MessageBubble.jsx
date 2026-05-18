@@ -1,4 +1,4 @@
-import { Check, CheckCheck } from 'lucide-react';
+import { Check, CheckCheck, FileText } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 function formatTime(dateStr) {
@@ -31,6 +31,17 @@ export default function MessageBubble({ message, prevMessage }) {
     typeof message.senderId === 'object' ? message.senderId?._id : message.senderId;
   const isFirst = prevSenderId !== thisSenderId;
 
+  const getFileName = (url) => {
+    try {
+      const urlObj = new URL(url);
+      const params = new URLSearchParams(urlObj.search);
+      if (params.has('filename')) return params.get('filename');
+      return url.split('/').pop().split('?')[0];
+    } catch {
+      return 'Document';
+    }
+  };
+
   return (
     <div
       className={`flex ${isMine ? 'justify-end' : 'justify-start'} px-4 message-bubble
@@ -61,6 +72,20 @@ export default function MessageBubble({ message, prevMessage }) {
               alt="attachment" 
               className="max-w-[240px] md:max-w-[320px] rounded-xl object-contain bg-black/5"
             />
+          ) : message.type === 'file' ? (
+            <a 
+              href={message.content} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 pr-12 hover:opacity-80 transition-opacity"
+            >
+              <div className="p-2 bg-black/5 rounded-lg shrink-0">
+                <FileText size={20} className={isMine ? 'text-white' : 'text-primary'} />
+              </div>
+              <span className="font-medium underline underline-offset-2 truncate max-w-[180px]">
+                {getFileName(message.content)}
+              </span>
+            </a>
           ) : (
             <p className="whitespace-pre-wrap break-words pr-12">{message.content}</p>
           )}

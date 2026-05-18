@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { Send, Smile, Paperclip, X, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Send, Smile, Paperclip, X, Loader2, Image as ImageIcon, FileText } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 
 const EMOJI_LIST = ['😀','😂','😍','🥺','😎','🤔','👍','❤️','🎉','🔥','✨','😢','🙏','😅','🤣','💯'];
@@ -40,9 +40,10 @@ export default function InputBar({ roomId, onSend, disabled }) {
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
-    if (file && file.type.startsWith('image/')) {
-      const previewUrl = URL.createObjectURL(file);
-      setAttachment({ file, previewUrl });
+    if (file) {
+      const isImage = file.type.startsWith('image/');
+      const previewUrl = isImage ? URL.createObjectURL(file) : null;
+      setAttachment({ file, previewUrl, isImage, name: file.name });
     }
     e.target.value = ''; // Reset input
   };
@@ -58,7 +59,7 @@ export default function InputBar({ roomId, onSend, disabled }) {
     formData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
     
     const res = await fetch(
-      `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
+      `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/auto/upload`,
       { method: 'POST', body: formData }
     );
     const data = await res.json();
@@ -79,8 +80,10 @@ export default function InputBar({ roomId, onSend, disabled }) {
           setIsUploading(false);
           return;
         }
-        const imageUrl = await uploadToCloudinary(attachment.file);
-        onSend(imageUrl, 'image');
+        const fileUrl = await uploadToCloudinary(attachment.file);
+        // Append filename to URL so the receiver can display it
+        const finalUrl = `${fileUrl}?filename=${encodeURIComponent(attachment.name)}`;
+        onSend(finalUrl, attachment.isImage ? 'image' : 'file');
         removeAttachment();
       }
 
@@ -122,11 +125,20 @@ export default function InputBar({ roomId, onSend, disabled }) {
       {attachment && (
         <div className="px-4 pt-3 pb-1 relative">
           <div className="relative inline-block border border-border-color rounded-xl overflow-hidden bg-background p-1 shadow-sm">
-            <img 
-              src={attachment.previewUrl} 
-              alt="preview" 
-              className="max-h-32 rounded-lg object-cover" 
-            />
+            {attachment.isImage ? (
+              <img 
+                src={attachment.previewUrl} 
+                alt="preview" 
+                className="max-h-32 rounded-lg object-cover" 
+              />
+            ) : (
+              <div className="flex items-center gap-2 p-3 pr-10 bg-background rounded-lg">
+                <FileText size={24} className="text-primary shrink-0" />
+                <span className="text-sm font-medium text-on-surface truncate max-w-[200px]">
+                  {attachment.name}
+                </span>
+              </div>
+            )}
             <button 
               onClick={removeAttachment}
               className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 hover:bg-black/80 transition"
@@ -163,7 +175,7 @@ export default function InputBar({ roomId, onSend, disabled }) {
       {/* Hidden File Input */}
       <input 
         type="file" 
-        accept="image/*" 
+        accept="*/*" 
         className="hidden" 
         ref={fileInputRef} 
         onChange={handleFileSelect}
