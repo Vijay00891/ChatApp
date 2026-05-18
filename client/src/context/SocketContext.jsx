@@ -37,9 +37,10 @@ export function SocketProvider({ children }) {
     const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
     const socket = io(SERVER_URL, {
       auth: { token },
-      transports: ['websocket', 'polling'],
-      reconnectionAttempts: 5,
+      reconnection: true,
       reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
     });
 
     socketRef.current = socket;
