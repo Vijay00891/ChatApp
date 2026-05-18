@@ -50,7 +50,7 @@ export default function MessageBubble({ message, prevMessage }) {
                   ${isFirst ? 'mt-3' : 'mt-0.5'}`}
     >
       <div
-        className={`relative max-w-[72%] flex flex-col
+        className={`relative max-w-[85%] md:max-w-[72%] flex flex-col min-w-0
           ${isMine ? 'items-end' : 'items-start'}`}
       >
         {/* Sender name for group-first messages (not mine) */}
@@ -90,7 +90,12 @@ export default function MessageBubble({ message, prevMessage }) {
               </span>
             </a>
           ) : (
-            <p className="whitespace-pre-wrap break-words pr-12">{message.content}</p>
+            <p 
+              className="whitespace-pre-wrap pr-12"
+              style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+            >
+              {message.content}
+            </p>
           )}
 
           {/* Timestamp + read receipt */}
