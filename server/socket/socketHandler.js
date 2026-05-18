@@ -53,13 +53,14 @@ const socketHandler = (io) => {
         socket.join(id);
         console.log(`📌 ${socket.user.name} joined room: ${id}`);
 
-        // Mark messages as delivered for this user
+        // Mark messages as READ for this user since they just opened the chat
         await Message.updateMany(
-          { roomId: id, senderId: { $ne: userId }, status: 'sent' },
-          { status: 'delivered' }
+          { roomId: id, senderId: { $ne: userId }, status: { $in: ['sent', 'delivered'] } },
+          { $set: { status: 'read' } }
         );
 
-        socket.to(id).emit('message_delivered', { roomId: id });
+        // Tell the other person that all messages in this room are now read
+        socket.to(id).emit('message_read', { roomId: id });
       } catch (err) {
         console.error('Join room error:', err);
       }
@@ -99,18 +100,29 @@ const socketHandler = (io) => {
           updatedAt: new Date(),
         });
 
-        // Deliver to ALL members in the room — event name: 'new_message'
-        io.to(roomId).emit('new_message', populated);
-
-        // Mark as delivered for members currently in room (except sender)
+        // Check if the other person is currently actively looking at this chat room
         const socketsInRoom = await io.in(roomId).fetchSockets();
         const activeUserIds = socketsInRoom
           .map((s) => s.userId)
           .filter((id) => id !== userId);
 
         if (activeUserIds.length > 0) {
-          await Message.findByIdAndUpdate(message._id, { status: 'delivered' });
-          io.to(roomId).emit('message_delivered', { roomId, messageId: message._id.toString() });
+          // They are staring at the chat, mark as read immediately!
+          await Message.findByIdAndUpdate(message._id, { status: 'read' });
+          populated.status = 'read';
+          io.to(roomId).emit('new_message', populated);
+        } else {
+          // They are not in this room right now. Check if they are online globally on the app
+          const peerId = room.members.find(m => m.toString() !== userId)?.toString();
+          if (peerId && onlineUsers.has(peerId)) {
+            // They are online but on another screen, mark as delivered
+            await Message.findByIdAndUpdate(message._id, { status: 'delivered' });
+            populated.status = 'delivered';
+            io.to(roomId).emit('new_message', populated);
+          } else {
+            // They are completely offline
+            io.to(roomId).emit('new_message', populated);
+          }
         }
 
         // Sidebar refresh

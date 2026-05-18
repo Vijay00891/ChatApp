@@ -97,19 +97,28 @@ export default function ChatWindow({ room, onBack }) {
           // Otherwise it's a new incoming message from someone else
           return [...prev, msg];
         });
-        emit('message_read', { messageId: msg._id, roomId: msg.roomId });
       }
     });
 
     on('message_delivered', instanceId, (data) => {
       setMessages((prev) =>
-        prev.map((m) => (m._id === data.messageId ? { ...m, status: 'delivered' } : m))
+        prev.map((m) => {
+          if (data.messageId) return m._id === data.messageId ? { ...m, status: 'delivered' } : m;
+          // If no messageId, mark all sent messages as delivered
+          const isMine = m.senderId?._id === user?._id || m.senderId === user?._id;
+          return isMine && m.status === 'sent' ? { ...m, status: 'delivered' } : m;
+        })
       );
     });
 
     on('message_read', instanceId, (data) => {
       setMessages((prev) =>
-        prev.map((m) => (m._id === data.messageId ? { ...m, status: 'read' } : m))
+        prev.map((m) => {
+          if (data.messageId) return m._id === data.messageId ? { ...m, status: 'read' } : m;
+          // If no messageId, mark all our previous sent/delivered messages as read
+          const isMine = m.senderId?._id === user?._id || m.senderId === user?._id;
+          return isMine && m.status !== 'read' ? { ...m, status: 'read' } : m;
+        })
       );
     });
 
