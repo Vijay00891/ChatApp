@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Check, CheckCheck, FileText, X } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Check, CheckCheck, FileText, X, ChevronDown, Copy, Reply, Smile } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 function formatTime(dateStr) {
@@ -17,7 +17,28 @@ function ReadReceipt({ status }) {
 export default function MessageBubble({ message, prevMessage, onReply }) {
   const { user } = useAuth();
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef(null);
   const isMine = message.senderId?._id === user?._id || message.senderId === user?._id;
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setShowMenu(false);
+      }
+    };
+    if (showMenu) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showMenu]);
+
+  const handleCopy = () => {
+    if (message.type === 'text') {
+      navigator.clipboard.writeText(message.content);
+    } else {
+      navigator.clipboard.writeText(message.content); // copies the URL
+    }
+    setShowMenu(false);
+  };
 
   const senderName =
     typeof message.senderId === 'object'
@@ -58,10 +79,50 @@ export default function MessageBubble({ message, prevMessage, onReply }) {
           <span className="text-xs font-medium text-primary mb-0.5 ml-1">{senderName}</span>
         )}
 
-        <div
-          onDoubleClick={onReply}
-          className={`
-            relative shadow-google text-sm leading-relaxed overflow-hidden
+        <div className="relative group/bubble flex flex-col">
+          {/* Dropdown chevron trigger */}
+          <button
+            onClick={() => setShowMenu((v) => !v)}
+            className={`absolute top-0 right-0 m-1 p-0.5 rounded-full bg-surface shadow-sm 
+                        border border-border-color text-subtle-text z-10 transition-opacity
+                        ${showMenu ? 'opacity-100' : 'opacity-0 group-hover/bubble:opacity-100'}`}
+          >
+            <ChevronDown size={16} />
+          </button>
+
+          {/* Context Menu */}
+          {showMenu && (
+            <div 
+              ref={menuRef}
+              className={`absolute top-7 z-50 w-36 bg-surface border border-border-color 
+                          rounded-xl shadow-google-lg py-1 animate-pop-in
+                          ${isMine ? 'right-0' : 'left-0'}`}
+            >
+              <button 
+                onClick={() => { onReply(); setShowMenu(false); }}
+                className="w-full text-left px-4 py-2 hover:bg-hover-bg text-sm text-on-surface flex items-center gap-3 transition-colors"
+              >
+                <Reply size={16} className="text-subtle-text" /> Reply
+              </button>
+              <button 
+                onClick={handleCopy}
+                className="w-full text-left px-4 py-2 hover:bg-hover-bg text-sm text-on-surface flex items-center gap-3 transition-colors"
+              >
+                <Copy size={16} className="text-subtle-text" /> Copy
+              </button>
+              <button 
+                onClick={() => { alert('Reactions coming soon!'); setShowMenu(false); }}
+                className="w-full text-left px-4 py-2 hover:bg-hover-bg text-sm text-on-surface flex items-center gap-3 transition-colors"
+              >
+                <Smile size={16} className="text-subtle-text" /> React
+              </button>
+            </div>
+          )}
+
+          <div
+            onDoubleClick={onReply}
+            className={`
+              relative shadow-google text-sm leading-relaxed overflow-hidden
             ${message.type === 'image' ? 'p-1' : 'px-4 py-2'}
             ${isMine
               ? 'bg-sent-bubble text-on-surface rounded-bubble rounded-br-sm'
@@ -120,6 +181,7 @@ export default function MessageBubble({ message, prevMessage, onReply }) {
             </span>
             {isMine && <ReadReceipt status={message.status} />}
           </div>
+        </div>
         </div>
       </div>
 
