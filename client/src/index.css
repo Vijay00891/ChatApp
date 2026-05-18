@@ -1,0 +1,134 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: 'Google Sans', 'DM Sans', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: #F8F9FA;
+    color: #202124;
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  #root {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.35);
+  }
+
+  /* Hide scrollbar by default, show on hover of parent */
+  .scrollbar-hidden {
+    scrollbar-width: none;
+  }
+  .scrollbar-hidden::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hidden:hover {
+    scrollbar-width: thin;
+  }
+  .scrollbar-hidden:hover::-webkit-scrollbar {
+    display: block;
+  }
+}
+
+@layer components {
+  /* Ripple effect */
+  .ripple-container {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ripple-container::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.08);
+    transform: scale(0);
+    pointer-events: none;
+    width: 100px;
+    height: 100px;
+    margin-left: -50px;
+    margin-top: -50px;
+    top: 50%;
+    left: 50%;
+  }
+
+  .ripple-container:active::after {
+    animation: ripple 600ms linear;
+  }
+
+  /* Google-style button */
+  .btn-primary {
+    @apply bg-primary text-white font-ui font-medium px-6 py-2.5 rounded-pill
+           shadow-none hover:shadow-google transition-all duration-200
+           hover:bg-primary-dark active:scale-95 ripple-container
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
+  }
+
+  .btn-ghost {
+    @apply text-primary font-ui font-medium px-4 py-2 rounded-pill
+           hover:bg-primary-light transition-all duration-150
+           active:scale-95 ripple-container;
+  }
+
+  .btn-icon {
+    @apply p-2 rounded-full hover:bg-hover-bg transition-all duration-150
+           ripple-container active:scale-90 text-subtle-text hover:text-on-surface;
+  }
+
+  /* Input field */
+  .input-field {
+    @apply w-full px-4 py-3 bg-surface border border-border-color rounded-input
+           font-ui text-sm text-on-surface placeholder-subtle-text
+           focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20
+           transition-all duration-200;
+  }
+
+  /* Sidebar item */
+  .sidebar-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-card cursor-pointer
+           transition-all duration-150 hover:bg-hover-bg;
+  }
+
+  .sidebar-item.active {
+    @apply bg-active-bg border-l-4 border-primary pl-2;
+  }
+
+  /* Message bubble animations */
+  .message-bubble {
+    @apply animate-slide-up;
+  }
+}

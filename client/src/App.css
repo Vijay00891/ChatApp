@@ -1,0 +1,27 @@
+/* App.css — Reset / overrides not covered by index.css */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+input, textarea {
+  font-family: inherit;
+}
+
+/* Ensure full height */
+html, body, #root {
+  height: 100%;
+}
