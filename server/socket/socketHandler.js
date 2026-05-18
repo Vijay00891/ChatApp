@@ -166,6 +166,40 @@ const socketHandler = (io) => {
       }
     });
 
+    // ── react_message ─────────────────────────────────────────────────────────
+    socket.on('react_message', async ({ messageId, roomId, emoji }) => {
+      try {
+        const message = await Message.findById(messageId);
+        if (!message) return;
+
+        const existingReactionIndex = message.reactions.findIndex(
+          (r) => r.userId.toString() === userId
+        );
+
+        if (existingReactionIndex > -1) {
+          if (message.reactions[existingReactionIndex].emoji === emoji) {
+            // Clicked same emoji -> remove it
+            message.reactions.splice(existingReactionIndex, 1);
+          } else {
+            // Clicked different emoji -> update it
+            message.reactions[existingReactionIndex].emoji = emoji;
+          }
+        } else {
+          // Add new reaction
+          message.reactions.push({ userId, emoji });
+        }
+
+        await message.save();
+
+        io.to(roomId).emit('message_reacted', {
+          messageId,
+          reactions: message.reactions,
+        });
+      } catch (err) {
+        console.error('React message error:', err);
+      }
+    });
+
     // ── disconnect ────────────────────────────────────────────────────────────
     socket.on('disconnect', async () => {
       console.log(`❌ User disconnected: ${socket.user.name}`);

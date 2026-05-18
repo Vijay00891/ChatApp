@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Check, CheckCheck, FileText, X, ChevronDown, Copy, Reply, Smile } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useSocket } from '../context/SocketContext';
 
 function formatTime(dateStr) {
   if (!dateStr) return '';
@@ -16,6 +17,7 @@ function ReadReceipt({ status }) {
 
 export default function MessageBubble({ message, prevMessage, onReply }) {
   const { user } = useAuth();
+  const { emit } = useSocket();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
@@ -37,6 +39,11 @@ export default function MessageBubble({ message, prevMessage, onReply }) {
     } else {
       navigator.clipboard.writeText(message.content); // copies the URL
     }
+    setShowMenu(false);
+  };
+
+  const handleReact = (emoji) => {
+    emit('react_message', { messageId: message._id, roomId: message.roomId, emoji });
     setShowMenu(false);
   };
 
@@ -94,10 +101,24 @@ export default function MessageBubble({ message, prevMessage, onReply }) {
           {showMenu && (
             <div 
               ref={menuRef}
-              className={`absolute top-7 z-50 w-36 bg-surface border border-border-color 
+              className={`absolute top-7 z-50 bg-surface border border-border-color 
                           rounded-xl shadow-google-lg py-1 animate-pop-in
                           ${isMine ? 'right-0' : 'left-0'}`}
+              style={{ minWidth: 180 }}
             >
+              {/* Emoji Picker Row */}
+              <div className="flex items-center justify-between px-3 py-2 border-b border-border-color mb-1">
+                {['👍', '❤️', '😂', '😮', '😢', '🙏'].map((emoji) => (
+                  <button 
+                    key={emoji}
+                    onClick={() => handleReact(emoji)}
+                    className="text-lg hover:scale-125 transition-transform cursor-pointer"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+
               <button 
                 onClick={() => { onReply(); setShowMenu(false); }}
                 className="w-full text-left px-4 py-2 hover:bg-hover-bg text-sm text-on-surface flex items-center gap-3 transition-colors"
@@ -109,12 +130,6 @@ export default function MessageBubble({ message, prevMessage, onReply }) {
                 className="w-full text-left px-4 py-2 hover:bg-hover-bg text-sm text-on-surface flex items-center gap-3 transition-colors"
               >
                 <Copy size={16} className="text-subtle-text" /> Copy
-              </button>
-              <button 
-                onClick={() => { alert('Reactions coming soon!'); setShowMenu(false); }}
-                className="w-full text-left px-4 py-2 hover:bg-hover-bg text-sm text-on-surface flex items-center gap-3 transition-colors"
-              >
-                <Smile size={16} className="text-subtle-text" /> React
               </button>
             </div>
           )}
@@ -182,6 +197,20 @@ export default function MessageBubble({ message, prevMessage, onReply }) {
             {isMine && <ReadReceipt status={message.status} />}
           </div>
         </div>
+
+        {/* Reactions Display */}
+        {message.reactions && message.reactions.length > 0 && (
+          <div className={`absolute -bottom-3 ${isMine ? 'right-2' : 'left-2'} 
+                           bg-surface border border-border-color rounded-full px-1.5 py-0.5 
+                           shadow-sm text-xs flex items-center gap-1 z-20 cursor-default animate-pop-in`}>
+             {Array.from(new Set(message.reactions.map(r => r.emoji))).map(emoji => (
+                <span key={emoji}>{emoji}</span>
+             ))}
+             {message.reactions.length > 1 && (
+               <span className="text-[10px] text-subtle-text font-semibold ml-0.5">{message.reactions.length}</span>
+             )}
+          </div>
+        )}
         </div>
       </div>
 

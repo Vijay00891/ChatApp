@@ -136,12 +136,21 @@ export default function ChatWindow({ room, onBack }) {
       }
     });
 
+    on('message_reacted', instanceId, (data) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m._id === data.messageId ? { ...m, reactions: data.reactions } : m
+        )
+      );
+    });
+
     return () => {
       off('new_message', instanceId);
       off('message_delivered', instanceId);
       off('message_read', instanceId);
       off('typing_start', instanceId);
       off('typing_stop', instanceId);
+      off('message_reacted', instanceId);
     };
   }, [room?._id, instanceId, on, off, emit, user?._id]);
 

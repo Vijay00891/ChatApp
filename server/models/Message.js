@@ -40,6 +40,15 @@ const messageSchema = new mongoose.Schema(
       ref: 'Message',
       default: null,
     },
+    reactions: [
+      {
+        emoji: String,
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+        },
+      }
+    ],
   },
   { timestamps: true }
 );
