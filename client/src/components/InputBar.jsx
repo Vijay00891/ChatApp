@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { Send, Smile, Paperclip } from 'lucide-react';
+import { Send, Smile, Paperclip, X, Loader2, Image as ImageIcon } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 
 const EMOJI_LIST = ['😀','😂','😍','🥺','😎','🤔','👍','❤️','🎉','🔥','✨','😢','🙏','😅','🤣','💯'];
@@ -8,8 +8,11 @@ export default function InputBar({ roomId, onSend, disabled }) {
   const [text, setText] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [attachment, setAttachment] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
   const typingTimerRef = useRef(null);
   const textareaRef = useRef(null);
+  const fileInputRef = useRef(null);
   const { emit } = useSocket();
 
   const handleTyping = useCallback(() => {
@@ -35,19 +38,70 @@ export default function InputBar({ roomId, onSend, disabled }) {
     }
   };
 
-  const handleSend = useCallback(() => {
-    const trimmed = text.trim();
-    if (!trimmed || disabled) return;
-    onSend(trimmed);
-    setText('');
-    clearTimeout(typingTimerRef.current);
-    if (isTyping) {
-      setIsTyping(false);
-      emit('typing_stop', { roomId });
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file && file.type.startsWith('image/')) {
+      const previewUrl = URL.createObjectURL(file);
+      setAttachment({ file, previewUrl });
     }
-    // Reset textarea height
-    if (textareaRef.current) textareaRef.current.style.height = 'auto';
-  }, [text, disabled, onSend, isTyping, emit, roomId]);
+    e.target.value = ''; // Reset input
+  };
+
+  const removeAttachment = () => {
+    if (attachment) URL.revokeObjectURL(attachment.previewUrl);
+    setAttachment(null);
+  };
+
+  const uploadToCloudinary = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
+    
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
+      { method: 'POST', body: formData }
+    );
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Upload failed');
+    return data.secure_url;
+  };
+
+  const handleSend = useCallback(async () => {
+    const trimmed = text.trim();
+    if ((!trimmed && !attachment) || disabled || isUploading) return;
+
+    try {
+      if (attachment) {
+        setIsUploading(true);
+        // If Cloudinary env vars are missing, we'll throw an error
+        if (!import.meta.env.VITE_CLOUDINARY_CLOUD_NAME) {
+          alert('Cloudinary is not configured! Check your .env file.');
+          setIsUploading(false);
+          return;
+        }
+        const imageUrl = await uploadToCloudinary(attachment.file);
+        onSend(imageUrl, 'image');
+        removeAttachment();
+      }
+
+      if (trimmed) {
+        onSend(trimmed, 'text');
+      }
+
+      setText('');
+      clearTimeout(typingTimerRef.current);
+      if (isTyping) {
+        setIsTyping(false);
+        emit('typing_stop', { roomId });
+      }
+      if (textareaRef.current) textareaRef.current.style.height = 'auto';
+    } catch (error) {
+      console.error('Send failed:', error);
+      alert('Failed to send image: ' + error.message);
+    } finally {
+      setIsUploading(false);
+    }
+  }, [text, attachment, disabled, onSend, isTyping, emit, roomId, isUploading]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -63,7 +117,28 @@ export default function InputBar({ roomId, onSend, disabled }) {
   };
 
   return (
-    <div className="relative flex items-end gap-2 px-4 py-3 bg-surface border-t border-border-color">
+    <div className="relative flex flex-col bg-surface border-t border-border-color">
+      {/* Attachment Preview Area */}
+      {attachment && (
+        <div className="px-4 pt-3 pb-1 relative">
+          <div className="relative inline-block border border-border-color rounded-xl overflow-hidden bg-background p-1 shadow-sm">
+            <img 
+              src={attachment.previewUrl} 
+              alt="preview" 
+              className="max-h-32 rounded-lg object-cover" 
+            />
+            <button 
+              onClick={removeAttachment}
+              className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 hover:bg-black/80 transition"
+              disabled={isUploading}
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-end gap-2 px-4 py-3 relative">
       {/* Emoji Picker */}
       {showEmoji && (
         <div
@@ -85,13 +160,23 @@ export default function InputBar({ roomId, onSend, disabled }) {
         </div>
       )}
 
+      {/* Hidden File Input */}
+      <input 
+        type="file" 
+        accept="image/*" 
+        className="hidden" 
+        ref={fileInputRef} 
+        onChange={handleFileSelect}
+      />
+
       {/* Attachment button */}
       <button
         id="btn-attach"
         className="btn-icon shrink-0 mb-0.5"
-        aria-label="Attach file"
-        title="Attach file (coming soon)"
-        disabled={disabled}
+        onClick={() => fileInputRef.current?.click()}
+        aria-label="Attach image"
+        title="Attach image"
+        disabled={disabled || isUploading}
       >
         <Paperclip size={20} />
       </button>
@@ -130,17 +215,22 @@ export default function InputBar({ roomId, onSend, disabled }) {
       <button
         id="btn-send"
         onClick={handleSend}
-        disabled={!text.trim() || disabled}
+        disabled={(!text.trim() && !attachment) || disabled || isUploading}
         className={`shrink-0 mb-0.5 w-10 h-10 rounded-full flex items-center justify-center
                     transition-all duration-200 ripple-container
-                    ${text.trim() && !disabled
+                    ${(text.trim() || attachment) && !disabled && !isUploading
                       ? 'bg-primary text-white shadow-google hover:bg-primary-dark active:scale-90'
                       : 'bg-hover-bg text-subtle-text cursor-not-allowed'
                     }`}
         aria-label="Send message"
       >
-        <Send size={18} style={{ marginLeft: 2 }} />
+        {isUploading ? (
+          <Loader2 size={18} className="animate-spin" />
+        ) : (
+          <Send size={18} style={{ marginLeft: 2 }} />
+        )}
       </button>
     </div>
+  </div>
   );
 }

@@ -140,7 +140,7 @@ export default function ChatWindow({ room, onBack }) {
   }, [messages, peerTyping]);
 
   const handleSend = useCallback(
-    (content) => {
+    (content, type = 'text') => {
       if (!room?._id) return;
       // Add optimistic message for instant UI feedback
       const tempId = `temp_${Date.now()}`;
@@ -150,11 +150,12 @@ export default function ChatWindow({ room, onBack }) {
         roomId: room._id,
         senderId: user,
         content,
+        type,
         status: 'sent',
         createdAt: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, optimistic]);
-      emit('send_message', { roomId: room._id, content, type: 'text' });
+      emit('send_message', { roomId: room._id, content, type });
     },
     [room?._id, user, emit]
   );

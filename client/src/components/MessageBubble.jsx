@@ -47,14 +47,23 @@ export default function MessageBubble({ message, prevMessage }) {
 
         <div
           className={`
-            relative px-4 py-2 shadow-google text-sm leading-relaxed
+            relative shadow-google text-sm leading-relaxed overflow-hidden
+            ${message.type === 'image' ? 'p-1' : 'px-4 py-2'}
             ${isMine
               ? 'bg-sent-bubble text-on-surface rounded-bubble rounded-br-sm'
               : 'bg-received-bubble text-on-surface border border-border-color rounded-bubble rounded-bl-sm'
             }
           `}
         >
-          <p className="whitespace-pre-wrap break-words pr-12">{message.content}</p>
+          {message.type === 'image' ? (
+            <img 
+              src={message.content} 
+              alt="attachment" 
+              className="max-w-[240px] md:max-w-[320px] rounded-xl object-contain bg-black/5"
+            />
+          ) : (
+            <p className="whitespace-pre-wrap break-words pr-12">{message.content}</p>
+          )}
 
           {/* Timestamp + read receipt */}
           <div className="absolute bottom-1.5 right-2 flex items-center gap-1 opacity-70">
