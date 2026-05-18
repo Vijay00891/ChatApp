@@ -1,4 +1,5 @@
-import { Check, CheckCheck, FileText } from 'lucide-react';
+import { useState } from 'react';
+import { Check, CheckCheck, FileText, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 function formatTime(dateStr) {
@@ -15,6 +16,7 @@ function ReadReceipt({ status }) {
 
 export default function MessageBubble({ message, prevMessage }) {
   const { user } = useAuth();
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const isMine = message.senderId?._id === user?._id || message.senderId === user?._id;
 
   const senderName =
@@ -70,7 +72,8 @@ export default function MessageBubble({ message, prevMessage }) {
             <img 
               src={message.content} 
               alt="attachment" 
-              className="max-w-[240px] md:max-w-[320px] rounded-xl object-contain bg-black/5"
+              onClick={() => setIsFullscreen(true)}
+              className="max-w-[240px] md:max-w-[320px] rounded-xl object-contain bg-black/5 cursor-pointer hover:opacity-90 transition-opacity"
             />
           ) : message.type === 'file' ? (
             <a 
@@ -99,6 +102,30 @@ export default function MessageBubble({ message, prevMessage }) {
           </div>
         </div>
       </div>
+
+      {/* Fullscreen Image Overlay */}
+      {isFullscreen && message.type === 'image' && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setIsFullscreen(false)}
+        >
+          <button 
+            className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/80 text-white rounded-full transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsFullscreen(false);
+            }}
+          >
+            <X size={24} />
+          </button>
+          <img 
+            src={message.content} 
+            alt="fullscreen attachment" 
+            className="max-w-full max-h-full object-contain select-none"
+            onClick={(e) => e.stopPropagation()} // prevent closing when clicking the image itself
+          />
+        </div>
+      )}
     </div>
   );
 }
