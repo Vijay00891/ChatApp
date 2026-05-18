@@ -4,7 +4,7 @@ import { useSocket } from '../context/SocketContext';
 
 const EMOJI_LIST = ['😀','😂','😍','🥺','😎','🤔','👍','❤️','🎉','🔥','✨','😢','🙏','😅','🤣','💯'];
 
-export default function InputBar({ roomId, onSend, disabled }) {
+export default function InputBar({ roomId, onSend, disabled, replyingTo, onCancelReply }) {
   const [text, setText] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
@@ -121,6 +121,28 @@ export default function InputBar({ roomId, onSend, disabled }) {
 
   return (
     <div className="relative flex flex-col bg-surface border-t border-border-color">
+      {/* Reply Banner */}
+      {replyingTo && (
+        <div className="px-4 pt-3 pb-1 relative animate-in slide-in-from-bottom-2 fade-in duration-200">
+          <div className="relative flex items-center justify-between border-l-4 border-primary bg-background rounded-r-xl p-3 shadow-sm">
+            <div className="flex flex-col min-w-0 pr-6">
+              <span className="text-xs font-semibold text-primary">
+                {replyingTo.senderId?.name || 'Someone'}
+              </span>
+              <span className="text-sm text-subtle-text truncate">
+                {replyingTo.type === 'image' ? '📷 Photo' : replyingTo.type === 'file' ? '📄 Document' : replyingTo.content}
+              </span>
+            </div>
+            <button 
+              onClick={onCancelReply}
+              className="p-1 hover:bg-hover-bg rounded-full text-subtle-text transition-colors shrink-0"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Attachment Preview Area */}
       {attachment && (
         <div className="px-4 pt-3 pb-1 relative">

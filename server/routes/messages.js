@@ -21,6 +21,11 @@ router.get('/:roomId', authMiddleware, async (req, res) => {
 
     const messages = await Message.find({ roomId })
       .populate('senderId', 'name avatar avatarColor')
+      .populate({
+        path: 'replyTo',
+        select: 'content type senderId',
+        populate: { path: 'senderId', select: 'name' }
+      })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);

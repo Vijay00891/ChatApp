@@ -14,7 +14,7 @@ function ReadReceipt({ status }) {
   return <Check size={14} className="text-subtle-text" />;
 }
 
-export default function MessageBubble({ message, prevMessage }) {
+export default function MessageBubble({ message, prevMessage, onReply }) {
   const { user } = useAuth();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const isMine = message.senderId?._id === user?._id || message.senderId === user?._id;
@@ -59,6 +59,7 @@ export default function MessageBubble({ message, prevMessage }) {
         )}
 
         <div
+          onDoubleClick={onReply}
           className={`
             relative shadow-google text-sm leading-relaxed overflow-hidden
             ${message.type === 'image' ? 'p-1' : 'px-4 py-2'}
@@ -68,6 +69,20 @@ export default function MessageBubble({ message, prevMessage }) {
             }
           `}
         >
+          {/* Replied Message Snippet */}
+          {message.replyTo && (
+            <div className={`mb-1.5 p-2 rounded-md border-l-4 border-primary text-xs
+                            ${isMine ? 'bg-white/40' : 'bg-black/5'}`}>
+              <div className="font-semibold text-primary mb-0.5">
+                {message.replyTo.senderId?.name || 'Someone'}
+              </div>
+              <div className="truncate text-on-surface/70 max-w-[200px]">
+                {message.replyTo.type === 'image' ? '📷 Photo' 
+                  : message.replyTo.type === 'file' ? '📄 Document' 
+                  : message.replyTo.content}
+              </div>
+            </div>
+          )}
           {message.type === 'image' ? (
             <img 
               src={message.content} 

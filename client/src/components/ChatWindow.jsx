@@ -50,6 +50,7 @@ export default function ChatWindow({ room, onBack }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [peerTyping, setPeerTyping] = useState(false);
+  const [replyingTo, setReplyingTo] = useState(null);
   const bottomRef = useRef(null);
   const instanceId = useId();
   // Tracks the latest pending optimistic temp ID so the socket echo can swap it
@@ -64,6 +65,7 @@ export default function ChatWindow({ room, onBack }) {
     if (!room?._id) return;
     setMessages([]);
     setPeerTyping(false);
+    setReplyingTo(null);
     setLoading(true);
 
     emit('join_room', room._id);
@@ -160,13 +162,15 @@ export default function ChatWindow({ room, onBack }) {
         senderId: user,
         content,
         type,
+        replyTo: replyingTo,
         status: 'sent',
         createdAt: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, optimistic]);
-      emit('send_message', { roomId: room._id, content, type });
+      emit('send_message', { roomId: room._id, content, type, replyTo: replyingTo?._id });
+      setReplyingTo(null);
     },
-    [room?._id, user, emit]
+    [room?._id, user, emit, replyingTo]
   );
 
   const items = groupByDate(messages);
@@ -255,6 +259,7 @@ export default function ChatWindow({ room, onBack }) {
                 key={item.value._id}
                 message={item.value}
                 prevMessage={prevMsg}
+                onReply={() => setReplyingTo(item.value)}
               />
             );
           })}
@@ -264,7 +269,13 @@ export default function ChatWindow({ room, onBack }) {
       </div>
 
       {/* Input */}
-      <InputBar roomId={room?._id} onSend={handleSend} disabled={!room?._id} />
+      <InputBar 
+        roomId={room?._id} 
+        onSend={handleSend} 
+        disabled={!room?._id} 
+        replyingTo={replyingTo}
+        onCancelReply={() => setReplyingTo(null)}
+      />
     </div>
   );
 }
