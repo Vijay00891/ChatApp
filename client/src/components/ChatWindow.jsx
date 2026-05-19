@@ -46,7 +46,7 @@ function groupByDate(messages) {
 
 export default function ChatWindow({ room, onBack }) {
   const { user } = useAuth();
-  const { on, off, emit, isUserOnline } = useSocket();
+  const { on, off, emit, isUserOnline, isConnected } = useSocket();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [peerTyping, setPeerTyping] = useState(false);
@@ -72,14 +72,23 @@ export default function ChatWindow({ room, onBack }) {
 
     messagesAPI
       .getByRoom(room._id)
-      .then((res) => setMessages(res.data.messages || []))
+      .then((res) => {
+        const roomMessages = res.data.messages || [];
+        setMessages(roomMessages);
+
+        roomMessages
+          .filter((m) => (m.senderId?._id ?? m.senderId) !== user?._id)
+          .forEach((msg) => {
+            emit('message_ack', { messageId: msg._id, roomId: room._id });
+          });
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
 
     return () => {
       emit('leave_room', room._id);
     };
-  }, [room?._id, emit]);
+  }, [room?._id, emit, user?._id]);
 
   // Socket subscriptions
   useEffect(() => {
@@ -88,17 +97,18 @@ export default function ChatWindow({ room, onBack }) {
     on('new_message', instanceId, (msg) => {
       if (msg.roomId === room._id) {
         setMessages((prev) => {
-          // If already present (exact _id) skip
           if (prev.some((m) => m._id === msg._id)) return prev;
-          // If this is the echo of our own optimistic message, swap it in-place
           const tempId = pendingTempId.current;
           if (tempId && prev.some((m) => m._id === tempId)) {
             pendingTempId.current = null;
             return prev.map((m) => (m._id === tempId ? msg : m));
           }
-          // Otherwise it's a new incoming message from someone else
           return [...prev, msg];
         });
+
+        if ((msg.senderId?._id ?? msg.senderId) !== user?._id) {
+          emit('message_ack', { messageId: msg._id, roomId: room._id });
+        }
       }
     });
 
@@ -117,11 +127,33 @@ export default function ChatWindow({ room, onBack }) {
       setMessages((prev) =>
         prev.map((m) => {
           if (data.messageId) return m._id === data.messageId ? { ...m, status: 'read' } : m;
-          // If no messageId, mark all our previous sent/delivered messages as read
           const isMine = m.senderId?._id === user?._id || m.senderId === user?._id;
           return isMine && m.status !== 'read' ? { ...m, status: 'read' } : m;
         })
       );
+    });
+
+    on('pending_messages', instanceId, ({ messages: pending }) => {
+      const roomMessages = pending.filter((msg) => msg.roomId === room._id);
+      if (!roomMessages.length) return;
+      setMessages((prev) => {
+        const missing = roomMessages.filter((msg) => !prev.some((m) => m._id === msg._id));
+        return [...prev, ...missing].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      });
+      roomMessages.forEach((msg) => {
+        emit('message_ack', { messageId: msg._id, roomId: room._id });
+      });
+    });
+
+    on('room_sync', instanceId, ({ roomId, messages: missed }) => {
+      if (roomId !== room._id) return;
+      setMessages((prev) => {
+        const missing = missed.filter((msg) => !prev.some((m) => m._id === msg._id));
+        return [...prev, ...missing].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      });
+      missed.forEach((msg) => {
+        emit('message_ack', { messageId: msg._id, roomId: room._id });
+      });
     });
 
     on('typing_start', instanceId, (data) => {
@@ -145,7 +177,6 @@ export default function ChatWindow({ room, onBack }) {
     });
 
     return () => {
-      off('new_message', instanceId);
       off('message_delivered', instanceId);
       off('message_read', instanceId);
       off('typing_start', instanceId);
@@ -153,6 +184,14 @@ export default function ChatWindow({ room, onBack }) {
       off('message_reacted', instanceId);
     };
   }, [room?._id, instanceId, on, off, emit, user?._id]);
+
+  // Ensure the active room is rejoined after reconnect and request any pending messages
+  useEffect(() => {
+    if (!room?._id || !isConnected) return;
+
+    emit('join_room', room._id);
+    emit('request_pending');
+  }, [room?._id, isConnected, emit]);
 
   // Scroll to bottom on new messages
   useEffect(() => {

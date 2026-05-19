@@ -3,8 +3,28 @@ const Message = require('../models/Message');
 const Room = require('../models/Room');
 const User = require('../models/User');
 
-// Map userId -> socketId for online presence tracking
-const onlineUsers = new Map();
+// Map userId -> active socket IDs for presence and reconnect handling
+const userSockets = new Map();
+
+function addSocketForUser(userId, socketId) {
+  if (!userSockets.has(userId)) userSockets.set(userId, new Set());
+  userSockets.get(userId).add(socketId);
+}
+
+function removeSocketForUser(userId, socketId) {
+  const sockets = userSockets.get(userId);
+  if (!sockets) return;
+  sockets.delete(socketId);
+  if (sockets.size === 0) userSockets.delete(userId);
+}
+
+function getUserSocketIds(userId) {
+  return Array.from(userSockets.get(userId) || []);
+}
+
+function getOnlineUserIds() {
+  return Array.from(userSockets.keys());
+}
 
 const socketHandler = (io) => {
   // Auth middleware for socket connections
@@ -29,17 +49,17 @@ const socketHandler = (io) => {
     const userId = socket.userId;
     console.log(`✅ User connected: ${socket.user.name} (${userId})`);
 
-    // Register user as online
-    onlineUsers.set(userId, socket.id);
+    addSocketForUser(userId, socket.id);
+    socket.join(userId); // personal room for reliable delivery notifications
 
-    // Update user status to online in DB
-    await User.findByIdAndUpdate(userId, { status: 'online' });
+    // Update user status to online in DB if this is the first active socket
+    if (getUserSocketIds(userId).length === 1) {
+      await User.findByIdAndUpdate(userId, { status: 'online' });
+      socket.broadcast.emit('user_connected', userId);
+    }
 
     // Send current online users list to the newly connected socket
-    socket.emit('online_users', Array.from(onlineUsers.keys()));
-
-    // Notify all connected clients of new user
-    socket.broadcast.emit('user_connected', userId);
+    socket.emit('online_users', getOnlineUserIds());
 
     // ── join_room ─────────────────────────────────────────────────────────────
     // Frontend sends: emit('join_room', roomId)  — plain string
@@ -87,6 +107,7 @@ const socketHandler = (io) => {
           type,
           replyTo,
           status: 'sent',
+          deliveredTo: [],
         });
 
         const populated = await Message.findById(message._id)
@@ -103,32 +124,44 @@ const socketHandler = (io) => {
           updatedAt: new Date(),
         });
 
-        // Check if the other person is currently actively looking at this chat room
-        const socketsInRoom = await io.in(roomId).fetchSockets();
-        const activeUserIds = socketsInRoom
-          .map((s) => s.userId)
+        const recipientIds = room.members
+          .map((m) => m.toString())
           .filter((id) => id !== userId);
 
-        if (activeUserIds.length > 0) {
-          // They are staring at the chat, mark as read immediately!
-          await Message.findByIdAndUpdate(message._id, { status: 'read' });
-          populated.status = 'read';
-          io.to(roomId).emit('new_message', populated);
-        } else {
-          // They are not in this room right now. Check if they are online globally on the app
-          const peerId = room.members.find(m => m.toString() !== userId)?.toString();
-          if (peerId && onlineUsers.has(peerId)) {
-            // They are online but on another screen, mark as delivered
-            await Message.findByIdAndUpdate(message._id, { status: 'delivered' });
-            populated.status = 'delivered';
-            io.to(roomId).emit('new_message', populated);
-          } else {
-            // They are completely offline
-            io.to(roomId).emit('new_message', populated);
-          }
+        const onlineRecipientIds = recipientIds.filter((recipientId) =>
+          userSockets.has(recipientId)
+        );
+
+        if (onlineRecipientIds.length > 0) {
+          await Message.findByIdAndUpdate(message._id, {
+            $addToSet: { deliveredTo: { $each: onlineRecipientIds } },
+            $set: { deliveredAt: new Date(), status: 'delivered' },
+          });
         }
 
-        // Sidebar refresh
+        recipientIds.forEach((recipientId) => {
+          io.to(recipientId).emit('new_message', populated);
+          io.to(recipientId).emit('room_updated', { roomId });
+          if (onlineRecipientIds.includes(recipientId)) {
+            io.to(message.senderId.toString()).emit('message_delivered', {
+              messageId: message._id,
+              roomId,
+              userId: recipientId,
+            });
+          }
+        });
+
+        // Notify sender with the saved message object so optimistic UI can reconcile
+        socket.emit('new_message', populated);
+
+        // Request pending sync for recipients that reconnect later
+        recipientIds.forEach((recipientId) => {
+          if (!userSockets.has(recipientId)) {
+            // No active socket; delivery will occur on reconnect via pending sync.
+            return;
+          }
+        });
+
         io.to(roomId).emit('room_updated', { roomId });
       } catch (err) {
         console.error('Send message error:', err);
@@ -152,6 +185,34 @@ const socketHandler = (io) => {
 
     // ── message_read ──────────────────────────────────────────────────────────
     // Frontend emits: emit('message_read', { messageId, roomId })
+    socket.on('message_ack', async ({ messageId, roomId }) => {
+      try {
+        const message = await Message.findById(messageId);
+        if (!message || message.roomId.toString() !== roomId) return;
+
+        const alreadyAcked = message.deliveredTo?.some(
+          (id) => id.toString() === userId
+        );
+        if (alreadyAcked) return;
+
+        message.deliveredTo = message.deliveredTo || [];
+        message.deliveredTo.push(userId);
+        message.deliveredAt = new Date();
+        if (message.status !== 'read') {
+          message.status = 'delivered';
+        }
+        await message.save();
+
+        io.to(message.senderId.toString()).emit('message_delivered', {
+          messageId,
+          roomId,
+          userId,
+        });
+      } catch (err) {
+        console.error('Message ack error:', err);
+      }
+    });
+
     socket.on('message_read', async ({ messageId, roomId }) => {
       try {
         const ids = Array.isArray(messageId) ? messageId : [messageId];
@@ -203,12 +264,68 @@ const socketHandler = (io) => {
     // ── disconnect ────────────────────────────────────────────────────────────
     socket.on('disconnect', async () => {
       console.log(`❌ User disconnected: ${socket.user.name}`);
-      onlineUsers.delete(userId);
+      removeSocketForUser(userId, socket.id);
+      socket.leave(userId);
 
-      const lastSeen = new Date();
-      await User.findByIdAndUpdate(userId, { status: 'offline', lastSeen });
+      if (getUserSocketIds(userId).length === 0) {
+        const lastSeen = new Date();
+        await User.findByIdAndUpdate(userId, { status: 'offline', lastSeen });
+        io.emit('user_disconnected', userId);
+      }
+    });
 
-      io.emit('user_disconnected', userId);
+    socket.on('request_pending', async () => {
+      try {
+        const rooms = await Room.find({ members: userId }).select('_id');
+        const roomIds = rooms.map((room) => room._id);
+        const pendingMessages = await Message.find({
+          roomId: { $in: roomIds },
+          senderId: { $ne: userId },
+          deliveredTo: { $ne: userId },
+        })
+          .populate('senderId', 'name avatar avatarColor')
+          .populate({
+            path: 'replyTo',
+            select: 'content type senderId',
+            populate: { path: 'senderId', select: 'name' },
+          })
+          .sort({ createdAt: 1 });
+
+        if (pendingMessages.length > 0) {
+          socket.emit('pending_messages', { messages: pendingMessages });
+        }
+      } catch (err) {
+        console.error('Pending message sync error:', err);
+      }
+    });
+
+    socket.on('sync_room', async ({ roomId, after }) => {
+      try {
+        const room = await Room.findOne({ _id: roomId, members: userId });
+        if (!room) return;
+
+        const query = { roomId, senderId: { $ne: userId } };
+        if (after) query.createdAt = { $gt: new Date(after) };
+
+        const missed = await Message.find(query)
+          .populate('senderId', 'name avatar avatarColor')
+          .populate({
+            path: 'replyTo',
+            select: 'content type senderId',
+            populate: { path: 'senderId', select: 'name' },
+          })
+          .sort({ createdAt: 1 });
+
+        if (missed.length > 0) {
+          socket.emit('room_sync', { roomId, messages: missed });
+        }
+      } catch (err) {
+        console.error('Room sync error:', err);
+      }
+    });
+
+    socket.on('heartbeat', () => {
+      socket.emit('heartbeat_ack', { timestamp: Date.now() });
     });
   });
 };

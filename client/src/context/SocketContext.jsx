@@ -38,15 +38,37 @@ export function SocketProvider({ children }) {
     const socket = io(SERVER_URL, {
       auth: { token },
       reconnection: true,
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
+      reconnectionDelayMax: 10000,
       timeout: 20000,
+      transports: ['websocket', 'polling'],
+      pingInterval: 25000,
+      pingTimeout: 60000,
+      autoConnect: true,
     });
 
     socketRef.current = socket;
 
-    socket.on('connect', () => setIsConnected(true));
+    socket.on('connect', () => {
+      setIsConnected(true);
+      socket.emit('request_pending');
+    });
+
+    socket.on('reconnect', () => {
+      setIsConnected(true);
+      socket.emit('request_pending');
+    });
+
     socket.on('disconnect', () => setIsConnected(false));
+
+    socket.on('connect_error', (err) => {
+      console.warn('Socket connect error:', err.message || err);
+    });
+
+    socket.on('reconnect_error', (err) => {
+      console.warn('Socket reconnect error:', err.message || err);
+    });
 
     socket.on('online_users', (users) => setOnlineUsers(users));
     socket.on('user_connected', (userId) =>
@@ -64,6 +86,9 @@ export function SocketProvider({ children }) {
       'typing_start',
       'typing_stop',
       'room_updated',
+      'pending_messages',
+      'room_sync',
+      'heartbeat_ack',
     ];
 
     forwardedEvents.forEach((event) => {

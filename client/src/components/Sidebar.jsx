@@ -100,9 +100,11 @@ export default function Sidebar({ selectedRoom, onSelectRoom }) {
   useEffect(() => {
     on('room_updated', instanceId, () => loadRooms());
     on('new_message', instanceId, () => loadRooms());
+    on('pending_messages', instanceId, () => loadRooms());
     return () => {
       off('room_updated', instanceId);
       off('new_message', instanceId);
+      off('pending_messages', instanceId);
     };
   }, [instanceId, on, off, loadRooms]);
 

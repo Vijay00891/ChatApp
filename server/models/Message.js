@@ -29,6 +29,15 @@ const messageSchema = new mongoose.Schema(
       enum: ['sent', 'delivered', 'read'],
       default: 'sent',
     },
+    deliveredTo: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
+    deliveredAt: {
+      type: Date,
+    },
     readBy: [
       {
         type: mongoose.Schema.Types.ObjectId,
