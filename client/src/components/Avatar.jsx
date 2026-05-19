@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react';
+
 /**
  * Avatar component — generates an initials-based colored circle.
  * Falls back gracefully if name is empty.
@@ -29,33 +31,55 @@ function initials(name = '') {
     .join('');
 }
 
-export default function Avatar({ name = '', size = 40, className = '', online = false }) {
+export default function Avatar({ name = '', size = 40, className = '', online = false, src = '' }) {
+  const [imageError, setImageError] = useState(false);
+
+  useEffect(() => {
+    setImageError(false);
+  }, [src]);
+
   const [bg, fg] = colorFor(name);
   const letters = initials(name) || '?';
   const fontSize = Math.round(size * 0.38);
+  const showImage = Boolean(src?.trim() && !imageError);
 
   return (
     <div className={`relative inline-flex shrink-0 ${className}`}>
-      <div
-        style={{
-          width: size,
-          height: size,
-          backgroundColor: bg,
-          color: fg,
-          fontSize,
-          borderRadius: '50%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontFamily: '"DM Sans", "Google Sans", Roboto, sans-serif',
-          fontWeight: 600,
-          userSelect: 'none',
-          letterSpacing: '0.03em',
-        }}
-        aria-label={`Avatar for ${name}`}
-      >
-        {letters}
-      </div>
+      {showImage ? (
+        <img
+          src={src}
+          alt={`Avatar for ${name}`}
+          onError={() => setImageError(true)}
+          style={{
+            width: size,
+            height: size,
+            borderRadius: '50%',
+            objectFit: 'cover',
+            display: 'block',
+          }}
+        />
+      ) : (
+        <div
+          style={{
+            width: size,
+            height: size,
+            backgroundColor: bg,
+            color: fg,
+            fontSize,
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontFamily: '"DM Sans", "Google Sans", Roboto, sans-serif',
+            fontWeight: 600,
+            userSelect: 'none',
+            letterSpacing: '0.03em',
+          }}
+          aria-label={`Avatar for ${name}`}
+        >
+          {letters}
+        </div>
+      )}
       {online && (
         <span
           style={{

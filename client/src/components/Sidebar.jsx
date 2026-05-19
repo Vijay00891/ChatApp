@@ -149,9 +149,12 @@ export default function Sidebar({ selectedRoom, onSelectRoom }) {
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-4 border-b border-border-color">
         <div className="flex items-center gap-2 flex-1">
-          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-            <MessageSquare size={16} className="text-white" />
-          </div>
+          <Avatar
+            name={user?.name ?? 'App'}
+            src={user?.avatar || ''}
+            size={32}
+            className="shrink-0"
+          />
           <span className="text-base font-semibold text-on-surface font-google">Messages</span>
           {/* Connection indicator */}
           <div className="ml-auto">
@@ -176,7 +179,7 @@ export default function Sidebar({ selectedRoom, onSelectRoom }) {
 
       {/* Current user info */}
       <div className="flex items-center gap-2.5 px-4 py-2.5 bg-background">
-        <Avatar name={user?.name} size={34} online={true} />
+        <Avatar name={user?.name} src={user?.avatar || ''} size={34} />
         <div className="min-w-0">
           <p className="text-xs font-semibold text-on-surface truncate">{user?.name}</p>
           <p className="text-[10px] text-subtle-text truncate">{user?.email}</p>
