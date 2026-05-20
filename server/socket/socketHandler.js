@@ -277,7 +277,63 @@ const socketHandler = (io) => {
         io.emit('user_disconnected', userId);
       }
     });
+    // ── WebRTC call events ────────────────────────────────────────────────
+    socket.on('call:initiate', ({ receiverId, callType, offer }) => {
+      const receiverSocketIds = userSockets.get(receiverId);
+      if (!receiverSocketIds || receiverSocketIds.size === 0) {
+        socket.emit('call:unavailable', { message: 'User is not online' });
+        return;
+      }
+      
+      receiverSocketIds.forEach((socketId) => {
+        io.to(socketId).emit('call:incoming', {
+          callerId: userId,
+          callerName: socket.user.name,
+          callerAvatar: socket.user.avatar || null,
+          callType,
+          offer
+        });
+      });
+    });
 
+    socket.on('call:accept', ({ callerId, answer }) => {
+      const callerSocketIds = userSockets.get(callerId);
+      if (callerSocketIds && callerSocketIds.size > 0) {
+        callerSocketIds.forEach((socketId) => {
+          io.to(socketId).emit('call:accepted', { answer });
+        });
+      }
+    });
+
+    socket.on('call:reject', ({ callerId }) => {
+      const callerSocketIds = userSockets.get(callerId);
+      if (callerSocketIds && callerSocketIds.size > 0) {
+        callerSocketIds.forEach((socketId) => {
+          io.to(socketId).emit('call:rejected', { rejectedBy: socket.user.name });
+        });
+      }
+    });
+
+    socket.on('call:ice-candidate', ({ targetId, candidate }) => {
+      const targetSocketIds = userSockets.get(targetId);
+      if (targetSocketIds && targetSocketIds.size > 0) {
+        targetSocketIds.forEach((socketId) => {
+          io.to(socketId).emit('call:ice-candidate', {
+            candidate,
+            fromId: userId
+          });
+        });
+      }
+    });
+
+    socket.on('call:end', ({ targetId }) => {
+      const targetSocketIds = userSockets.get(targetId);
+      if (targetSocketIds && targetSocketIds.size > 0) {
+        targetSocketIds.forEach((socketId) => {
+          io.to(socketId).emit('call:ended', { endedBy: socket.user.name });
+        });
+      }
+    });
     socket.on('request_pending', async () => {
       try {
         // Efficient pending sync: fetch PendingDelivery entries for this user

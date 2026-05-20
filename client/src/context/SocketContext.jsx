@@ -89,6 +89,12 @@ export function SocketProvider({ children }) {
       'pending_messages',
       'room_sync',
       'heartbeat_ack',
+      'call:incoming',
+      'call:accepted',
+      'call:rejected',
+      'call:ended',
+      'call:unavailable',
+      'call:ice-candidate',
     ];
 
     forwardedEvents.forEach((event) => {

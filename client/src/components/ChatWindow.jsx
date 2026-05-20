@@ -4,10 +4,12 @@ import { messagesAPI } from '../lib/api';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../hooks/useNotification';
+import { useWebRTC } from '../hooks/useWebRTC';
 import Avatar from './Avatar';
 import MessageBubble from './MessageBubble';
 import InputBar from './InputBar';
 import TypingIndicator from './TypingIndicator';
+import CallUI from './CallUI';
 
 function getPeerFromRoom(room, currentUserId) {
   if (!room) return null;
@@ -49,6 +51,22 @@ export default function ChatWindow({ room, onBack }) {
   const { user } = useAuth();
   const { on, off, emit, isUserOnline, isConnected } = useSocket();
   const { sendNotification } = useNotification();
+  const {
+    callState,
+    callType,
+    remoteUser,
+    isMicOn,
+    isCameraOn,
+    callDuration,
+    localVideoRef,
+    remoteVideoRef,
+    startCall,
+    acceptCall,
+    rejectCall,
+    endCall,
+    toggleMic,
+    toggleCamera
+  } = useWebRTC();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [peerTyping, setPeerTyping] = useState(false);
@@ -274,10 +292,10 @@ export default function ChatWindow({ room, onBack }) {
         </div>
 
         <div className="flex items-center gap-1">
-          <button id="btn-call" className="btn-icon" aria-label="Voice call" title="Voice call (coming soon)">
+          <button id="btn-call" className="btn-icon" aria-label="Voice call" title="Voice call" onClick={() => peer && startCall(peer, 'audio')}>
             <Phone size={20} />
           </button>
-          <button id="btn-video" className="btn-icon" aria-label="Video call" title="Video call (coming soon)">
+          <button id="btn-video" className="btn-icon" aria-label="Video call" title="Video call" onClick={() => peer && startCall(peer, 'video')}>
             <Video size={20} />
           </button>
           <button id="btn-more" className="btn-icon" aria-label="More options">
@@ -334,6 +352,23 @@ export default function ChatWindow({ room, onBack }) {
         disabled={!room?._id} 
         replyingTo={replyingTo}
         onCancelReply={() => setReplyingTo(null)}
+      />
+
+      {/* Call UI */}
+      <CallUI
+        callState={callState}
+        callType={callType}
+        remoteUser={remoteUser}
+        isMicOn={isMicOn}
+        isCameraOn={isCameraOn}
+        callDuration={callDuration}
+        localVideoRef={localVideoRef}
+        remoteVideoRef={remoteVideoRef}
+        acceptCall={acceptCall}
+        rejectCall={rejectCall}
+        endCall={endCall}
+        toggleMic={toggleMic}
+        toggleCamera={toggleCamera}
       />
     </div>
   );
