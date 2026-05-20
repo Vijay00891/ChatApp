@@ -3,6 +3,7 @@ import { ArrowLeft, Phone, Video, MoreVertical } from 'lucide-react';
 import { messagesAPI } from '../lib/api';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
+import { useNotification } from '../hooks/useNotification';
 import Avatar from './Avatar';
 import MessageBubble from './MessageBubble';
 import InputBar from './InputBar';
@@ -47,6 +48,7 @@ function groupByDate(messages) {
 export default function ChatWindow({ room, onBack }) {
   const { user } = useAuth();
   const { on, off, emit, isUserOnline, isConnected } = useSocket();
+  const { sendNotification } = useNotification();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [peerTyping, setPeerTyping] = useState(false);
@@ -108,6 +110,9 @@ export default function ChatWindow({ room, onBack }) {
 
         if ((msg.senderId?._id ?? msg.senderId) !== user?._id) {
           emit('message_ack', { messageId: msg._id, roomId: room._id });
+          // Send notification for incoming message
+          const senderName = msg.senderId?.name ?? 'Unknown';
+          sendNotification(senderName, msg.content);
         }
       }
     });
@@ -142,6 +147,9 @@ export default function ChatWindow({ room, onBack }) {
       });
       roomMessages.forEach((msg) => {
         emit('message_ack', { messageId: msg._id, roomId: room._id });
+        // Send notification for pending messages
+        const senderName = msg.senderId?.name ?? 'Unknown';
+        sendNotification(senderName, msg.content);
       });
     });
 
@@ -153,6 +161,9 @@ export default function ChatWindow({ room, onBack }) {
       });
       missed.forEach((msg) => {
         emit('message_ack', { messageId: msg._id, roomId: room._id });
+        // Send notification for synced messages
+        const senderName = msg.senderId?.name ?? 'Unknown';
+        sendNotification(senderName, msg.content);
       });
     });
 
@@ -183,7 +194,7 @@ export default function ChatWindow({ room, onBack }) {
       off('typing_stop', instanceId);
       off('message_reacted', instanceId);
     };
-  }, [room?._id, instanceId, on, off, emit, user?._id]);
+  }, [room?._id, instanceId, on, off, emit, user?._id, sendNotification]);
 
   // Ensure the active room is rejoined after reconnect and request any pending messages
   useEffect(() => {
