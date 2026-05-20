@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const Message = require('../models/Message');
 const Room = require('../models/Room');
 const User = require('../models/User');
+const PendingDelivery = require('../models/PendingDelivery');
 
 // Map userId -> active socket IDs for presence and reconnect handling
 const userSockets = new Map();
@@ -154,13 +155,16 @@ const socketHandler = (io) => {
         // Notify sender with the saved message object so optimistic UI can reconcile
         socket.emit('new_message', populated);
 
-        // Request pending sync for recipients that reconnect later
-        recipientIds.forEach((recipientId) => {
-          if (!userSockets.has(recipientId)) {
-            // No active socket; delivery will occur on reconnect via pending sync.
-            return;
+        // For offline recipients, create pending delivery entries so reconnect sync is efficient
+        const offlineRecipientIds = recipientIds.filter((recipientId) => !userSockets.has(recipientId));
+        if (offlineRecipientIds.length > 0) {
+          try {
+            const docs = offlineRecipientIds.map((rid) => ({ recipientId: rid, messageId: message._id }));
+            await PendingDelivery.insertMany(docs, { ordered: false });
+          } catch (e) {
+            // ignore duplicate key errors or other transient insertion errors
           }
-        });
+        }
 
         io.to(roomId).emit('room_updated', { roomId });
       } catch (err) {
@@ -276,13 +280,12 @@ const socketHandler = (io) => {
 
     socket.on('request_pending', async () => {
       try {
-        const rooms = await Room.find({ members: userId }).select('_id');
-        const roomIds = rooms.map((room) => room._id);
-        const pendingMessages = await Message.find({
-          roomId: { $in: roomIds },
-          senderId: { $ne: userId },
-          deliveredTo: { $ne: userId },
-        })
+        // Efficient pending sync: fetch PendingDelivery entries for this user
+        const pendings = await PendingDelivery.find({ recipientId: userId }).select('messageId -_id');
+        const messageIds = pendings.map((p) => p.messageId).filter(Boolean);
+        if (messageIds.length === 0) return;
+
+        const pendingMessages = await Message.find({ _id: { $in: messageIds } })
           .populate('senderId', 'name avatar avatarColor')
           .populate({
             path: 'replyTo',
@@ -294,6 +297,9 @@ const socketHandler = (io) => {
         if (pendingMessages.length > 0) {
           socket.emit('pending_messages', { messages: pendingMessages });
         }
+
+        // Remove pending entries that were sent to this socket
+        await PendingDelivery.deleteMany({ recipientId: userId, messageId: { $in: messageIds } });
       } catch (err) {
         console.error('Pending message sync error:', err);
       }
