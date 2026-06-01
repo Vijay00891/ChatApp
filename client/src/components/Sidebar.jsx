@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useId } from 'react';
-import { Search, X, Plus, MessageSquare, LogOut, Wifi, WifiOff } from 'lucide-react';
+import { Search, X, Plus, MessageSquare, LogOut, Wifi, WifiOff, MoreVertical, Pin, Trash2 } from 'lucide-react';
 import { roomsAPI, usersAPI } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
@@ -16,7 +16,8 @@ function formatRelativeTime(dateStr) {
   return new Date(dateStr).toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
-function RoomItem({ room, currentUserId, isSelected, onClick, isOnline }) {
+function RoomItem({ room, currentUserId, isSelected, onClick, isOnline, onPin, onDelete, isPinned }) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const peer =
     room.type === 'dm'
       ? room.members?.find((m) => (m._id ?? m) !== currentUserId)
@@ -25,36 +26,100 @@ function RoomItem({ room, currentUserId, isSelected, onClick, isOnline }) {
   const lastMsg = room.lastMessage;
   const unread = room.unread || 0;
 
+  // Close dropdown on click outside
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleOutsideClick = () => setMenuOpen(false);
+    document.addEventListener('click', handleOutsideClick);
+    return () => document.removeEventListener('click', handleOutsideClick);
+  }, [menuOpen]);
+
   return (
-    <button
+    <div
       id={`room-${room._id}`}
       onClick={onClick}
-      className={`sidebar-item w-full text-left transition-all duration-150 ripple-container
+      className={`sidebar-item w-full text-left transition-all duration-150 relative group
                   ${isSelected ? 'bg-active-bg border-l-4 border-primary pl-2' : ''}`}
+      style={{ display: 'flex', alignItems: 'center', gap: '12px' }}
     >
       <Avatar name={name} size={46} online={isOnline} />
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 pr-1">
         <div className="flex justify-between items-baseline gap-1">
-          <span className="text-sm font-medium text-on-surface truncate">{name}</span>
+          <span className="text-sm font-medium text-on-surface truncate flex items-center gap-1.5">
+            {name}
+            {isPinned && <Pin size={12} className="text-primary fill-primary rotate-45 shrink-0" />}
+          </span>
           {lastMsg && (
             <span className="text-[10px] text-subtle-text shrink-0">
               {formatRelativeTime(lastMsg.createdAt)}
             </span>
           )}
         </div>
-        <div className="flex justify-between items-center gap-1">
+        <div className="flex justify-between items-center gap-1 mt-0.5">
           <p className="text-xs text-subtle-text truncate leading-snug">
             {lastMsg ? lastMsg.content : 'No messages yet'}
           </p>
-          {unread > 0 && (
-            <span className="shrink-0 text-[10px] font-bold bg-primary text-white
-                             rounded-full w-4 h-4 flex items-center justify-center">
-              {unread > 9 ? '9+' : unread}
-            </span>
-          )}
+          <div className="flex items-center gap-1 shrink-0">
+            {unread > 0 && (
+              <span className="shrink-0 text-[10px] font-bold bg-primary text-white
+                               rounded-full w-4 h-4 flex items-center justify-center">
+                {unread > 9 ? '9+' : unread}
+              </span>
+            )}
+            
+            {/* Options Button & Dropdown */}
+            <div className="relative leading-none">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenuOpen(!menuOpen);
+                }}
+                className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 rounded-full 
+                           hover:bg-hover-bg text-subtle-text hover:text-on-surface 
+                           transition-all duration-150 shrink-0"
+                title="Options"
+                aria-label="Options"
+              >
+                <MoreVertical size={16} />
+              </button>
+
+              {menuOpen && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute right-0 mt-1 py-1 w-28 bg-surface border border-border-color 
+                             rounded-card shadow-google-md z-50 text-xs text-on-surface animate-pop-in"
+                >
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onPin(room._id);
+                      setMenuOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-2 hover:bg-hover-bg text-on-surface 
+                               flex items-center gap-2 transition-colors duration-150"
+                  >
+                    <Pin size={13} className={`${isPinned ? 'text-primary fill-primary' : 'text-subtle-text'}`} />
+                    <span>{isPinned ? 'Unpin' : 'Pin'}</span>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(room._id);
+                      setMenuOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-2 hover:bg-hover-bg text-error 
+                               flex items-center gap-2 transition-colors duration-150"
+                  >
+                    <Trash2 size={13} />
+                    <span>Delete</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -82,6 +147,74 @@ export default function Sidebar({ selectedRoom, onSelectRoom }) {
   const [searching, setSearching] = useState(false);
   const [loadingRooms, setLoadingRooms] = useState(true);
   const instanceId = useId();
+
+  const [deletedRooms, setDeletedRooms] = useState({});
+  const [pinnedRooms, setPinnedRooms] = useState([]);
+
+  // Load deleted and pinned rooms from localStorage when user changes
+  useEffect(() => {
+    if (!user?._id) return;
+    try {
+      setDeletedRooms(JSON.parse(localStorage.getItem(`deleted_rooms_${user._id}`) || '{}'));
+    } catch {
+      setDeletedRooms({});
+    }
+    try {
+      setPinnedRooms(JSON.parse(localStorage.getItem(`pinned_rooms_${user._id}`) || '[]'));
+    } catch {
+      setPinnedRooms([]);
+    }
+  }, [user?._id]);
+
+  const handlePinRoom = useCallback((roomId) => {
+    if (!user?._id) return;
+    let updated;
+    if (pinnedRooms.includes(roomId)) {
+      updated = pinnedRooms.filter((id) => id !== roomId);
+    } else {
+      updated = [...pinnedRooms, roomId];
+    }
+    localStorage.setItem(`pinned_rooms_${user._id}`, JSON.stringify(updated));
+    setPinnedRooms(updated);
+  }, [pinnedRooms, user?._id]);
+
+  const handleDeleteRoom = useCallback((roomId) => {
+    if (!user?._id) return;
+    const updated = {
+      ...deletedRooms,
+      [roomId]: Date.now()
+    };
+    localStorage.setItem(`deleted_rooms_${user._id}`, JSON.stringify(updated));
+    setDeletedRooms(updated);
+    if (selectedRoom?._id === roomId) {
+      onSelectRoom(null);
+    }
+  }, [deletedRooms, user?._id, selectedRoom?._id, onSelectRoom]);
+
+  const processedRooms = rooms
+    .filter((room) => {
+      const deletedAt = deletedRooms[room._id];
+      if (!deletedAt) return true;
+      const lastMsgTime = room.lastMessage 
+        ? new Date(room.lastMessage.createdAt).getTime() 
+        : room.createdAt ? new Date(room.createdAt).getTime() : 0;
+      return lastMsgTime > deletedAt;
+    })
+    .sort((a, b) => {
+      const aPinned = pinnedRooms.includes(a._id);
+      const bPinned = pinnedRooms.includes(b._id);
+      
+      if (aPinned && !bPinned) return -1;
+      if (!aPinned && bPinned) return 1;
+      
+      const aTime = a.lastMessage 
+        ? new Date(a.lastMessage.createdAt).getTime() 
+        : a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.lastMessage 
+        ? new Date(b.lastMessage.createdAt).getTime() 
+        : b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bTime - aTime;
+    });
 
   // Load conversations
   const loadRooms = useCallback(() => {
@@ -240,7 +373,7 @@ export default function Sidebar({ selectedRoom, onSelectRoom }) {
                 <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               </div>
             )}
-            {!loadingRooms && rooms.length === 0 && (
+            {!loadingRooms && processedRooms.length === 0 && (
               <div className="flex flex-col items-center mt-12 gap-3 text-center px-4">
                 <Plus size={32} className="text-border-color" />
                 <p className="text-xs text-subtle-text">
@@ -248,7 +381,7 @@ export default function Sidebar({ selectedRoom, onSelectRoom }) {
                 </p>
               </div>
             )}
-            {rooms.map((room) => {
+            {processedRooms.map((room) => {
               const peer =
                 room.type === 'dm'
                   ? room.members?.find((m) => (m._id ?? m) !== user?._id)
@@ -262,6 +395,9 @@ export default function Sidebar({ selectedRoom, onSelectRoom }) {
                   isSelected={selectedRoom?._id === room._id}
                   onClick={() => onSelectRoom(room)}
                   isOnline={peerId ? isUserOnline(peerId) : false}
+                  onPin={handlePinRoom}
+                  onDelete={handleDeleteRoom}
+                  isPinned={pinnedRooms.includes(room._id)}
                 />
               );
             })}
