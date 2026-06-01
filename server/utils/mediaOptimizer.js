@@ -33,9 +33,9 @@ async function uploadToCloudinaryUnsigned(filePath, cloudName, uploadPreset) {
 }
 
 // Upload helper with local storage fallback
-async function uploadFileHelper(filePath, filename) {
-  const cloudName = process.env.CLOUDINARY_CLOUD_NAME || process.env.VITE_CLOUDINARY_CLOUD_NAME;
-  const uploadPreset = process.env.CLOUDINARY_UPLOAD_PRESET || process.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+async function uploadFileHelper(filePath, filename, options = {}) {
+  const cloudName = options.cloudName || process.env.CLOUDINARY_CLOUD_NAME || process.env.VITE_CLOUDINARY_CLOUD_NAME;
+  const uploadPreset = options.uploadPreset || process.env.CLOUDINARY_UPLOAD_PRESET || process.env.VITE_CLOUDINARY_UPLOAD_PRESET;
   
   if (cloudName && uploadPreset) {
     try {
@@ -210,14 +210,14 @@ function extractVideoThumbnail(inputPath, outputPath) {
 }
 
 // Asynchronous background video worker
-async function runBackgroundVideoCompression(tempInputPath, tempOutputPath, tempThumbPath, originalUrl, filename, thumbFilename, io) {
+async function runBackgroundVideoCompression(tempInputPath, tempOutputPath, tempThumbPath, originalUrl, filename, thumbFilename, io, cloudOpts = {}) {
   try {
     const meta = await getVideoMetadata(tempInputPath);
     console.log(`[Media Worker] Starting background video compression for: ${filename}`);
     await compressVideo(tempInputPath, tempOutputPath, meta);
     console.log(`[Media Worker] Video compressed successfully. Uploading...`);
     
-    const compressedUrl = await uploadFileHelper(tempOutputPath, filename);
+    const compressedUrl = await uploadFileHelper(tempOutputPath, filename, cloudOpts);
     
     // Update message matching original URL
     let retries = 10;

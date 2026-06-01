@@ -58,6 +58,12 @@ export default function InputBar({ roomId, onSend, disabled, replyingTo, onCance
     const formData = new FormData();
     formData.append('file', file);
     
+    // Pass Cloudinary credentials so server can upload after compression
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+    if (cloudName) formData.append('cloudName', cloudName);
+    if (uploadPreset) formData.append('uploadPreset', uploadPreset);
+    
     const token = localStorage.getItem('token');
     const baseUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:8000';
     

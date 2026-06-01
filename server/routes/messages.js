@@ -108,6 +108,12 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req, res) =
   const mimeType = req.file.mimetype;
   const fileExt = path.extname(originalname).toLowerCase();
   
+  // Cloudinary credentials passed from the client
+  const cloudOpts = {
+    cloudName: req.body.cloudName,
+    uploadPreset: req.body.uploadPreset
+  };
+  
   try {
     const isImage = mimeType.startsWith('image/');
     const isVideo = mimeType.startsWith('video/');
@@ -116,8 +122,8 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req, res) =
       console.log(`[Upload Endpoint] Optimizing image: ${originalname}`);
       const result = await optimizeImage(tempFilePath, originalname, tempDir);
       
-      const url = await uploadFileHelper(result.optimizedPath, result.optimizedFileName);
-      const thumbnailUrl = await uploadFileHelper(result.thumbnailPath, result.thumbnailFileName);
+      const url = await uploadFileHelper(result.optimizedPath, result.optimizedFileName, cloudOpts);
+      const thumbnailUrl = await uploadFileHelper(result.thumbnailPath, result.thumbnailFileName, cloudOpts);
       
       // Cleanup temp files
       try {
@@ -152,14 +158,14 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req, res) =
       
       // Extract thumbnail at 5s (320x180)
       await extractVideoThumbnail(tempFilePath, tempThumbPath);
-      const thumbnailUrl = await uploadFileHelper(tempThumbPath, thumbFileName);
+      const thumbnailUrl = await uploadFileHelper(tempThumbPath, thumbFileName, cloudOpts);
       
       const isAsync = originalSize > 50 * 1024 * 1024; // > 50 MB
       
       if (isAsync) {
         console.log(`[Upload Endpoint] Video size exceeds 50MB. Compressing asynchronously...`);
         // Upload original video to get temporary URL
-        const originalUrl = await uploadFileHelper(tempFilePath, `${uniqueId}-orig${fileExt}`);
+        const originalUrl = await uploadFileHelper(tempFilePath, `${uniqueId}-orig${fileExt}`, cloudOpts);
         
         // Run background thread
         const io = req.app.get('io');
@@ -170,7 +176,8 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req, res) =
           originalUrl,
           compressedFileName,
           thumbFileName,
-          io
+          io,
+          cloudOpts
         );
         
         return res.json({
@@ -189,7 +196,7 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req, res) =
         const compressedSize = fs.statSync(compressedPath).size;
         const compressionRatio = ((1 - compressedSize / originalSize) * 100).toFixed(1) + '%';
         
-        const videoUrl = await uploadFileHelper(compressedPath, compressedFileName);
+        const videoUrl = await uploadFileHelper(compressedPath, compressedFileName, cloudOpts);
         
         // Cleanup temp files
         try {
@@ -216,7 +223,7 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req, res) =
     console.log(`[Upload Endpoint] Storing raw file: ${originalname}`);
     const uniqueId = uuidv4();
     const finalFileName = `${uniqueId}${fileExt}`;
-    const url = await uploadFileHelper(tempFilePath, finalFileName);
+    const url = await uploadFileHelper(tempFilePath, finalFileName, cloudOpts);
     
     try {
       if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
