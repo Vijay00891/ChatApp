@@ -22,7 +22,7 @@ function RoomItem({ room, currentUserId, isSelected, onClick, isOnline, onPin, o
     room.type === 'dm'
       ? room.members?.find((m) => (m._id ?? m) !== currentUserId)
       : null;
-  const name = room.type === 'group' ? room.name : peer?.name ?? 'Unknown';
+  const name = room.name || (room.type === 'group' ? 'Group Chat' : peer?.name ?? 'Unknown');
   const lastMsg = room.lastMessage;
   const unread = room.unread || 0;
 
@@ -42,7 +42,7 @@ function RoomItem({ room, currentUserId, isSelected, onClick, isOnline, onPin, o
                   ${isSelected ? 'bg-active-bg border-l-4 border-primary pl-2' : ''}`}
       style={{ display: 'flex', alignItems: 'center', gap: '12px' }}
     >
-      <Avatar name={name} size={46} online={isOnline} />
+      <Avatar name={name} src={room.avatar || ''} size={46} online={isOnline} />
       <div className="flex-1 min-w-0 pr-1">
         <div className="flex justify-between items-baseline gap-1">
           <span className="text-sm font-medium text-on-surface truncate flex items-center gap-1.5">
@@ -138,7 +138,7 @@ function UserSearchResult({ user, onStartChat }) {
   );
 }
 
-export default function Sidebar({ selectedRoom, onSelectRoom }) {
+export default function Sidebar({ selectedRoom, onSelectRoom, deletedRooms = {}, pinnedRooms = [], onPinRoom, onDeleteRoom }) {
   const { user, logout } = useAuth();
   const { isConnected, isUserOnline, on, off } = useSocket();
   const [rooms, setRooms] = useState([]);
@@ -148,8 +148,6 @@ export default function Sidebar({ selectedRoom, onSelectRoom }) {
   const [loadingRooms, setLoadingRooms] = useState(true);
   const instanceId = useId();
 
-  const [deletedRooms, setDeletedRooms] = useState({});
-  const [pinnedRooms, setPinnedRooms] = useState([]);
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [groupName, setGroupName] = useState('');
@@ -209,45 +207,7 @@ export default function Sidebar({ selectedRoom, onSelectRoom }) {
     }
   }, [groupName, selectedMembers, onSelectRoom]);
 
-  // Load deleted and pinned rooms from localStorage when user changes
-  useEffect(() => {
-    if (!user?._id) return;
-    try {
-      setDeletedRooms(JSON.parse(localStorage.getItem(`deleted_rooms_${user._id}`) || '{}'));
-    } catch {
-      setDeletedRooms({});
-    }
-    try {
-      setPinnedRooms(JSON.parse(localStorage.getItem(`pinned_rooms_${user._id}`) || '[]'));
-    } catch {
-      setPinnedRooms([]);
-    }
-  }, [user?._id]);
-
-  const handlePinRoom = useCallback((roomId) => {
-    if (!user?._id) return;
-    let updated;
-    if (pinnedRooms.includes(roomId)) {
-      updated = pinnedRooms.filter((id) => id !== roomId);
-    } else {
-      updated = [...pinnedRooms, roomId];
-    }
-    localStorage.setItem(`pinned_rooms_${user._id}`, JSON.stringify(updated));
-    setPinnedRooms(updated);
-  }, [pinnedRooms, user?._id]);
-
-  const handleDeleteRoom = useCallback((roomId) => {
-    if (!user?._id) return;
-    const updated = {
-      ...deletedRooms,
-      [roomId]: Date.now()
-    };
-    localStorage.setItem(`deleted_rooms_${user._id}`, JSON.stringify(updated));
-    setDeletedRooms(updated);
-    if (selectedRoom?._id === roomId) {
-      onSelectRoom(null);
-    }
-  }, [deletedRooms, user?._id, selectedRoom?._id, onSelectRoom]);
+  // Lifted states/handlers are passed from parent Chat.jsx
 
   const processedRooms = rooms
     .filter((room) => {
@@ -278,10 +238,22 @@ export default function Sidebar({ selectedRoom, onSelectRoom }) {
   const loadRooms = useCallback(() => {
     roomsAPI
       .getAll()
-      .then((res) => setRooms(res.data.rooms || []))
+      .then((res) => {
+        const roomsList = res.data.rooms || [];
+        setRooms(roomsList);
+        if (selectedRoom) {
+          const updatedSelected = roomsList.find((r) => r._id === selectedRoom._id);
+          if (updatedSelected) {
+            // Check if name or avatar has changed to avoid unnecessary updates
+            if (updatedSelected.name !== selectedRoom.name || updatedSelected.avatar !== selectedRoom.avatar) {
+              onSelectRoom(updatedSelected);
+            }
+          }
+        }
+      })
       .catch(() => {})
       .finally(() => setLoadingRooms(false));
-  }, []);
+  }, [selectedRoom, onSelectRoom]);
 
   useEffect(() => {
     loadRooms();
@@ -482,8 +454,8 @@ export default function Sidebar({ selectedRoom, onSelectRoom }) {
                   isSelected={selectedRoom?._id === room._id}
                   onClick={() => onSelectRoom(room)}
                   isOnline={peerId ? isUserOnline(peerId) : false}
-                  onPin={handlePinRoom}
-                  onDelete={handleDeleteRoom}
+                  onPin={onPinRoom}
+                  onDelete={onDeleteRoom}
                   isPinned={pinnedRooms.includes(room._id)}
                 />
               );

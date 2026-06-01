@@ -50,6 +50,7 @@ export const roomsAPI = {
   getAll: () => api.get('/rooms'),
   createDM: (userId) => api.post('/rooms/dm', { targetUserId: userId }),
   createGroup: (name, memberIds) => api.post('/rooms/group', { name, memberIds }),
+  update: (roomId, data) => api.put(`/rooms/${roomId}`, data),
 };
 
 // --- Messages ---

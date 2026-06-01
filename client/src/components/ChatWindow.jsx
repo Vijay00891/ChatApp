@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback, useId } from 'react';
-import { ArrowLeft, Phone, Video, MoreVertical } from 'lucide-react';
-import { messagesAPI } from '../lib/api';
+import { ArrowLeft, Phone, Video, MoreVertical, X, Edit2, Check, Camera, Trash2 } from 'lucide-react';
+import { messagesAPI, roomsAPI } from '../lib/api';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../hooks/useNotification';
@@ -48,7 +48,7 @@ function groupByDate(messages) {
   return groups;
 }
 
-export default function ChatWindow({ room, onBack }) {
+export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom }) {
   const { user } = useAuth();
   const { on, off, emit, isUserOnline, isConnected, getUserLastSeen } = useSocket();
   const { sendNotification } = useNotification();
@@ -79,7 +79,89 @@ export default function ChatWindow({ room, onBack }) {
 
   const peer = getPeerFromRoom(room, user?._id);
   const peerOnline = peer ? isUserOnline(peer?._id ?? peer) : false;
-  const roomName = room?.type === 'group' ? room.name : peer?.name ?? 'Chat';
+  const roomName = room?.name || (room?.type === 'group' ? 'Group Chat' : peer?.name ?? 'Chat');
+
+  // Chat Info / Group Details Modal State
+  const [showInfoModal, setShowInfoModal] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [tempName, setTempName] = useState('');
+  const [modalMenuOpen, setModalMenuOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    setShowInfoModal(false);
+    setEditMode(false);
+    setTempName('');
+    setModalMenuOpen(false);
+    setSaving(false);
+  }, [room?._id]);
+
+  useEffect(() => {
+    if (showInfoModal) {
+      setTempName(roomName);
+    }
+  }, [showInfoModal, roomName]);
+
+  // Close modal menu on click outside
+  useEffect(() => {
+    if (!modalMenuOpen) return;
+    const handleOutsideClick = () => setModalMenuOpen(false);
+    document.addEventListener('click', handleOutsideClick);
+    return () => document.removeEventListener('click', handleOutsideClick);
+  }, [modalMenuOpen]);
+
+  const handleSaveName = async () => {
+    if (!tempName.trim() || tempName.trim() === roomName) {
+      setEditMode(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await roomsAPI.update(room._id, { name: tempName.trim() });
+      if (onUpdateRoom) {
+        onUpdateRoom(res.data.room);
+      }
+      setEditMode(false);
+    } catch (err) {
+      console.error('Failed to update name:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAvatarClick = () => {
+    if (room?.type === 'group' && fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size exceeds 5MB limit.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64 = reader.result;
+      setSaving(true);
+      try {
+        const res = await roomsAPI.update(room._id, { avatar: base64 });
+        if (onUpdateRoom) {
+          onUpdateRoom(res.data.room);
+        }
+      } catch (err) {
+        console.error('Failed to update group avatar:', err);
+      } finally {
+        setSaving(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Fetch history
   useEffect(() => {
@@ -206,12 +288,25 @@ export default function ChatWindow({ room, onBack }) {
       );
     });
 
+    on('room_updated', instanceId, (data) => {
+      if (data.roomId === room._id) {
+        roomsAPI.getAll().then((res) => {
+          const roomsList = res.data.rooms || [];
+          const updatedSelected = roomsList.find((r) => r._id === room._id);
+          if (updatedSelected && onUpdateRoom) {
+            onUpdateRoom(updatedSelected);
+          }
+        }).catch(() => {});
+      }
+    });
+
     return () => {
       off('message_delivered', instanceId);
       off('message_read', instanceId);
       off('typing_start', instanceId);
       off('typing_stop', instanceId);
       off('reaction_update', instanceId);
+      off('room_updated', instanceId);
     };
   }, [room?._id, instanceId, on, off, emit, user?._id, sendNotification]);
 
@@ -254,8 +349,210 @@ export default function ChatWindow({ room, onBack }) {
   const items = groupByDate(messages);
   let msgIdx = -1;
 
+  const renderInfoModal = () => {
+    if (!showInfoModal) return null;
+
+    return (
+      <div 
+        className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+        onClick={() => setShowInfoModal(false)}
+      >
+        <div 
+          className="bg-surface rounded-card w-full max-w-md shadow-google-lg flex flex-col max-h-[90vh] animate-pop-in border border-border-color text-on-surface"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Modal Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border-color">
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setShowInfoModal(false)}
+                className="btn-icon p-1 hover:bg-hover-bg rounded-full text-subtle-text hover:text-on-surface"
+                aria-label="Close details"
+              >
+                <X size={20} />
+              </button>
+              <h3 className="text-sm font-semibold font-google">
+                {room.type === 'group' ? 'Group Details' : 'Contact Information'}
+              </h3>
+            </div>
+            
+            {/* Modal Actions */}
+            <div className="relative">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setModalMenuOpen(!modalMenuOpen);
+                }}
+                className="p-2 rounded-full hover:bg-hover-bg transition-colors text-subtle-text hover:text-on-surface"
+                aria-label="Options"
+              >
+                <MoreVertical size={20} />
+              </button>
+              {modalMenuOpen && (
+                <div
+                  className="absolute right-0 mt-1 py-1 w-36 bg-surface border border-border-color 
+                             rounded-card shadow-google-md z-[1010] text-xs text-on-surface animate-pop-in"
+                >
+                  <button
+                    onClick={() => {
+                      setModalMenuOpen(false);
+                      setShowInfoModal(false);
+                      if (onDeleteRoom) {
+                        onDeleteRoom(room._id);
+                      }
+                    }}
+                    className="w-full text-left px-3 py-2.5 hover:bg-hover-bg text-error 
+                               flex items-center gap-2 transition-colors duration-150"
+                  >
+                    <Trash2 size={14} />
+                    <span className="font-medium">Delete Chat</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Modal Body */}
+          <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center">
+            {/* Avatar Section */}
+            <div className="relative group mb-4">
+              <div 
+                className={`relative rounded-full overflow-hidden ${room.type === 'group' ? 'cursor-pointer hover:opacity-90 active:scale-95' : ''} transition-all`}
+                onClick={handleAvatarClick}
+              >
+                <Avatar name={roomName} src={room.avatar || ''} size={96} />
+                {room.type === 'group' && (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Camera size={24} className="text-white" />
+                  </div>
+                )}
+              </div>
+              {room.type === 'group' && (
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleAvatarChange} 
+                  accept="image/*" 
+                  className="hidden" 
+                />
+              )}
+            </div>
+
+            {/* Room/Contact Name Section */}
+            <div className="w-full mb-6 flex flex-col items-center">
+              {editMode ? (
+                <div className="flex items-center gap-2 w-full max-w-xs">
+                  <input
+                    type="text"
+                    value={tempName}
+                    onChange={(e) => setTempName(e.target.value)}
+                    className="input-field py-1.5 px-3 text-sm flex-1 text-center"
+                    placeholder="Enter chat name..."
+                    autoFocus
+                    disabled={saving}
+                  />
+                  <button 
+                    onClick={handleSaveName}
+                    disabled={saving}
+                    className="p-2 rounded-full bg-primary/10 text-primary hover:bg-primary/20 active:scale-95 transition-all"
+                    title="Save name"
+                  >
+                    <Check size={16} />
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setEditMode(false);
+                      setTempName(roomName);
+                    }}
+                    disabled={saving}
+                    className="p-2 rounded-full bg-hover-bg text-subtle-text hover:bg-border-color active:scale-95 transition-all"
+                    title="Cancel"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-semibold text-on-surface font-google truncate max-w-[280px]">
+                    {roomName}
+                  </h2>
+                  <button
+                    onClick={() => setEditMode(true)}
+                    className="p-1 rounded-full hover:bg-hover-bg text-subtle-text hover:text-on-surface transition-colors"
+                    title="Edit Name"
+                  >
+                    <Edit2 size={14} />
+                  </button>
+                </div>
+              )}
+              {saving && <p className="text-xs text-primary mt-1 animate-pulse">saving changes...</p>}
+            </div>
+
+            {/* Info Section */}
+            {room.type === 'dm' ? (
+              <div className="w-full bg-background rounded-card p-4 border border-border-color space-y-3">
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-subtle-text tracking-wider">Email Address</label>
+                  <p className="text-sm font-medium text-on-surface">{peer?.email ?? 'N/A'}</p>
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-subtle-text tracking-wider">Presence Status</label>
+                  <p className="text-sm font-medium text-on-surface flex items-center gap-1.5 mt-0.5">
+                    <span className={`w-2.5 h-2.5 rounded-full ${peerOnline ? 'bg-success' : 'bg-subtle-text/40'}`} />
+                    {peerOnline ? 'Online' : 'Offline'}
+                  </p>
+                </div>
+                {peer?.lastSeen && !peerOnline && (
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-subtle-text tracking-wider">Last Seen</label>
+                    <p className="text-xs text-subtle-text">
+                      {new Date(peer.lastSeen).toLocaleString()}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="w-full flex flex-col flex-1 min-h-0">
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="text-xs font-bold text-subtle-text uppercase tracking-wider">
+                    Members ({room.members?.length || 0})
+                  </h4>
+                </div>
+                <div className="w-full bg-background rounded-card border border-border-color overflow-y-auto max-h-[220px] divide-y divide-border-color">
+                  {room.members?.map((member) => {
+                    const isMemberOnline = isUserOnline(member._id ?? member);
+                    const isAdmin = room.admins?.some(adminId => (adminId._id ?? adminId) === (member._id ?? member));
+                    const isSelf = member._id === user?._id;
+                    
+                    return (
+                      <div key={member._id} className="flex items-center gap-3 px-3 py-2.5 animate-slide-up">
+                        <Avatar name={member.name} src={member.avatar || ''} size={32} online={isMemberOnline} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-on-surface truncate">
+                            {member.name} {isSelf && <span className="text-[10px] text-primary">(You)</span>}
+                          </p>
+                          <p className="text-[10px] text-subtle-text truncate">{member.email}</p>
+                        </div>
+                        {isAdmin && (
+                          <span className="shrink-0 text-[9px] font-semibold bg-primary-light text-primary px-1.5 py-0.5 rounded-pill">
+                            Admin
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col h-full bg-background">
+      {renderInfoModal()}
       {/* Top App Bar */}
       <div
         className="flex items-center gap-3 px-3 py-3 bg-surface border-b border-border-color
@@ -271,22 +568,27 @@ export default function ChatWindow({ room, onBack }) {
           <ArrowLeft size={22} />
         </button>
 
-        <Avatar name={roomName} size={40} online={peerOnline} />
+        <div 
+          onClick={() => setShowInfoModal(true)}
+          className="flex flex-1 items-center gap-3 cursor-pointer select-none hover:opacity-90 active:scale-[0.99] transition-all"
+        >
+          <Avatar name={roomName} src={room.avatar || ''} size={40} online={peerOnline} />
 
-        <div className="flex-1 min-w-0">
-          <h2 className="text-sm font-semibold text-on-surface truncate leading-tight">
-            {roomName}
-          </h2>
-          <p className="text-xs text-subtle-text leading-tight">
-            {peerTyping ? (
-              <span className="text-primary animate-pulse">typing…</span>
-            ) : (
-              formatLastSeen(
-                peerOnline ? 'online' : 'offline',
-                peer ? getUserLastSeen(peer._id ?? peer, peer.lastSeen) : null
-              )
-            )}
-          </p>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-sm font-semibold text-on-surface truncate leading-tight">
+              {roomName}
+            </h2>
+            <p className="text-xs text-subtle-text leading-tight">
+              {peerTyping ? (
+                <span className="text-primary animate-pulse">typing…</span>
+              ) : (
+                formatLastSeen(
+                  peerOnline ? 'online' : 'offline',
+                  peer ? getUserLastSeen(peer._id ?? peer, peer.lastSeen) : null
+                )
+              )}
+            </p>
+          </div>
         </div>
 
         <div className="flex items-center gap-1">

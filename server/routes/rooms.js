@@ -91,6 +91,39 @@ router.post('/group', authMiddleware, async (req, res) => {
   }
 });
 
+// PUT /api/rooms/:id — update room (name and/or avatar)
+router.put('/:id', authMiddleware, async (req, res) => {
+  try {
+    const { name, avatar } = req.body;
+    const room = await Room.findOne({ _id: req.params.id, members: req.user._id });
+    if (!room) {
+      return res.status(404).json({ message: 'Room not found or access denied.' });
+    }
+
+    if (name !== undefined) room.name = name;
+    if (avatar !== undefined) room.avatar = avatar;
+
+    await room.save();
+
+    const populated = await Room.findById(room._id)
+      .populate('members', 'name email avatar avatarColor status lastSeen')
+      .populate({
+        path: 'lastMessage',
+        populate: { path: 'senderId', select: 'name' },
+      });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(room._id.toString()).emit('room_updated', { roomId: room._id.toString() });
+    }
+
+    res.json({ room: populated });
+  } catch (error) {
+    console.error('Update room error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+});
+
 // GET /api/rooms/:id
 router.get('/:id', authMiddleware, async (req, res) => {
   try {

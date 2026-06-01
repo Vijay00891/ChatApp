@@ -35,6 +35,8 @@ const io = new Server(server, {
   pingInterval: 25000,
 });
 
+app.set('io', io);
+
 // Middleware
 app.use(cors({
   origin: ALLOWED_ORIGINS,

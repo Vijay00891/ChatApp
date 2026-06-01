@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { MessageSquare } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import ChatWindow from '../components/ChatWindow';
+import { useAuth } from '../context/AuthContext';
 
 function EmptyState() {
   return (
@@ -23,9 +24,54 @@ function EmptyState() {
 }
 
 export default function Chat() {
+  const { user } = useAuth();
   const [selectedRoom, setSelectedRoom] = useState(null);
   // For mobile, track whether the sidebar or chat is shown
   const [mobileView, setMobileView] = useState('sidebar'); // 'sidebar' | 'chat'
+
+  const [deletedRooms, setDeletedRooms] = useState({});
+  const [pinnedRooms, setPinnedRooms] = useState([]);
+
+  // Load deleted and pinned rooms from localStorage when user changes
+  useEffect(() => {
+    if (!user?._id) return;
+    try {
+      setDeletedRooms(JSON.parse(localStorage.getItem(`deleted_rooms_${user._id}`) || '{}'));
+    } catch {
+      setDeletedRooms({});
+    }
+    try {
+      setPinnedRooms(JSON.parse(localStorage.getItem(`pinned_rooms_${user._id}`) || '[]'));
+    } catch {
+      setPinnedRooms([]);
+    }
+  }, [user?._id]);
+
+  const handlePinRoom = useCallback((roomId) => {
+    if (!user?._id) return;
+    let updated;
+    if (pinnedRooms.includes(roomId)) {
+      updated = pinnedRooms.filter((id) => id !== roomId);
+    } else {
+      updated = [...pinnedRooms, roomId];
+    }
+    localStorage.setItem(`pinned_rooms_${user._id}`, JSON.stringify(updated));
+    setPinnedRooms(updated);
+  }, [pinnedRooms, user?._id]);
+
+  const handleDeleteRoom = useCallback((roomId) => {
+    if (!user?._id) return;
+    const updated = {
+      ...deletedRooms,
+      [roomId]: Date.now()
+    };
+    localStorage.setItem(`deleted_rooms_${user._id}`, JSON.stringify(updated));
+    setDeletedRooms(updated);
+    if (selectedRoom?._id === roomId) {
+      setSelectedRoom(null);
+      setMobileView('sidebar');
+    }
+  }, [deletedRooms, user?._id, selectedRoom?._id]);
 
   const handleSelectRoom = (room) => {
     setSelectedRoom(room);
@@ -47,7 +93,14 @@ export default function Chat() {
           w-full md:w-80 lg:w-96 shrink-0
         `}
       >
-        <Sidebar selectedRoom={selectedRoom} onSelectRoom={handleSelectRoom} />
+        <Sidebar 
+          selectedRoom={selectedRoom} 
+          onSelectRoom={handleSelectRoom} 
+          deletedRooms={deletedRooms}
+          pinnedRooms={pinnedRooms}
+          onPinRoom={handlePinRoom}
+          onDeleteRoom={handleDeleteRoom}
+        />
       </div>
 
       {/* Divider */}
@@ -61,7 +114,12 @@ export default function Chat() {
         `}
       >
         {selectedRoom ? (
-          <ChatWindow room={selectedRoom} onBack={handleBack} />
+          <ChatWindow 
+            room={selectedRoom} 
+            onBack={handleBack} 
+            onDeleteRoom={handleDeleteRoom}
+            onUpdateRoom={(updatedRoom) => setSelectedRoom(updatedRoom)}
+          />
         ) : (
           <EmptyState />
         )}
