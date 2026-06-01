@@ -1,5 +1,15 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { authAPI } from '../lib/api';
+import { authAPI, usersAPI } from '../lib/api';
+import { 
+  generateKeyPair, 
+  exportPublicKey, 
+  storePrivateKey, 
+  savePublicKeyJWK, 
+  getPrivateKey, 
+  getPublicKeyJWK, 
+  clearKeys, 
+  isIndexedDbAvailable 
+} from '../utils/crypto';
 
 const AuthContext = createContext(null);
 
@@ -12,7 +22,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
     if (!storedToken) {
-      setLoading(false);
+      Promise.resolve().then(() => setLoading(false));
       return;
     }
     authAPI
@@ -30,6 +40,34 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
+  const initializeKeys = useCallback(async () => {
+    try {
+      const existingPrivKey = await getPrivateKey();
+      const existingPubJWK = getPublicKeyJWK();
+      if (existingPrivKey && existingPubJWK) {
+        return; // already initialized
+      }
+      
+      const keyPair = await generateKeyPair();
+      const publicJWK = await exportPublicKey(keyPair.publicKey);
+      await storePrivateKey(keyPair.privateKey);
+      savePublicKeyJWK(publicJWK);
+      
+      try {
+        await usersAPI.uploadPublicKey(publicJWK);
+      } catch (err) {
+        console.error("Failed to upload public key to server:", err);
+        alert("Encryption setup failed, messages may not be encrypted");
+      }
+      
+      if (!isIndexedDbAvailable()) {
+        alert("Private key will be lost on tab close (Private browsing detected)");
+      }
+    } catch (err) {
+      console.error("E2EE key initialization failed:", err);
+    }
+  }, []);
+
   const login = useCallback(async (email, password) => {
     const res = await authAPI.login({ email, password });
     const { token: t, user: u } = res.data;
@@ -37,8 +75,9 @@ export function AuthProvider({ children }) {
     localStorage.setItem('user', JSON.stringify(u));
     setToken(t);
     setUser(u);
+    await initializeKeys();
     return u;
-  }, []);
+  }, [initializeKeys]);
 
   const register = useCallback(async (name, email, password) => {
     const res = await authAPI.register({ name, email, password });
@@ -47,10 +86,12 @@ export function AuthProvider({ children }) {
     localStorage.setItem('user', JSON.stringify(u));
     setToken(t);
     setUser(u);
+    await initializeKeys();
     return u;
-  }, []);
+  }, [initializeKeys]);
 
   const logout = useCallback(() => {
+    clearKeys();
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setToken(null);

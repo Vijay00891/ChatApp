@@ -23,7 +23,7 @@ router.get('/:roomId', authMiddleware, async (req, res) => {
       .populate('senderId', 'name avatar avatarColor')
       .populate({
         path: 'replyTo',
-        select: 'content type senderId',
+        select: 'content type senderId iv encrypted',
         populate: { path: 'senderId', select: 'name' }
       })
       .sort({ createdAt: -1 })

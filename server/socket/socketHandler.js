@@ -74,7 +74,7 @@ const socketHandler = (io) => {
     // Frontend emits: emit('send_message', { roomId, content, type, replyTo })
     socket.on('send_message', async (data) => {
       try {
-        const { roomId, content, type = 'text', replyTo = null } = data;
+        const { roomId, content, type = 'text', replyTo = null, iv = null, encrypted = true } = data;
 
         const room = await Room.findOne({ _id: roomId, members: userId });
         if (!room) return socket.emit('error', { message: 'Room not found.' });
@@ -87,13 +87,15 @@ const socketHandler = (io) => {
           replyTo,
           status: 'sent',
           deliveredTo: [],
+          iv,
+          encrypted
         });
 
         const populated = await Message.findById(message._id)
           .populate('senderId', 'name avatar avatarColor')
           .populate({
             path: 'replyTo',
-            select: 'content type senderId',
+            select: 'content type senderId iv encrypted',
             populate: { path: 'senderId', select: 'name' }
           });
 
@@ -310,7 +312,7 @@ const socketHandler = (io) => {
           .populate('senderId', 'name avatar avatarColor')
           .populate({
             path: 'replyTo',
-            select: 'content type senderId',
+            select: 'content type senderId iv encrypted',
             populate: { path: 'senderId', select: 'name' },
           })
           .sort({ createdAt: 1 });
@@ -338,7 +340,7 @@ const socketHandler = (io) => {
           .populate('senderId', 'name avatar avatarColor')
           .populate({
             path: 'replyTo',
-            select: 'content type senderId',
+            select: 'content type senderId iv encrypted',
             populate: { path: 'senderId', select: 'name' },
           })
           .sort({ createdAt: 1 });

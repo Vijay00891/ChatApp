@@ -15,13 +15,52 @@ function ReadReceipt({ status }) {
   return <Check size={14} className="text-subtle-text" />;
 }
 
-export default function MessageBubble({ message, prevMessage, onReply }) {
+export default function MessageBubble({ message, prevMessage, onReply, decrypt }) {
   const { user } = useAuth();
   const { emit } = useSocket();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
   const isMine = message.senderId?._id === user?._id || message.senderId === user?._id;
+
+  const [decryptedContent, setDecryptedContent] = useState(() => {
+    if (!message.encrypted || message._id?.toString().startsWith('temp_')) {
+      return message.content;
+    }
+    return 'Decrypting...';
+  });
+
+  const [decryptedReply, setDecryptedReply] = useState(() => {
+    if (!message.replyTo) return null;
+    if (!message.replyTo.encrypted || message.replyTo._id?.toString().startsWith('temp_')) {
+      return message.replyTo.content;
+    }
+    return 'Decrypting reply...';
+  });
+
+  useEffect(() => {
+    if (message.encrypted && !message._id?.toString().startsWith('temp_')) {
+      decrypt(message.content, message.iv)
+        .then((decrypted) => {
+          setDecryptedContent(decrypted);
+        })
+        .catch(() => {
+          setDecryptedContent('🔒 Unable to decrypt');
+        });
+    } else {
+      setDecryptedContent(message.content);
+    }
+  }, [message._id, message.content, message.encrypted, message.iv, decrypt]);
+
+  useEffect(() => {
+    if (message.replyTo && message.replyTo.encrypted && !message.replyTo._id?.toString().startsWith('temp_')) {
+      decrypt(message.replyTo.content, message.replyTo.iv)
+        .then(setDecryptedReply)
+        .catch(() => setDecryptedReply('🔒 Unable to decrypt'));
+    } else if (message.replyTo) {
+      setDecryptedReply(message.replyTo.content);
+    }
+  }, [message.replyTo, decrypt]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -183,20 +222,20 @@ export default function MessageBubble({ message, prevMessage, onReply }) {
               <div className="truncate text-on-surface/70 max-w-[200px]">
                 {message.replyTo.type === 'image' ? '📷 Photo' 
                   : message.replyTo.type === 'file' ? '📄 Document' 
-                  : message.replyTo.content}
+                  : decryptedReply}
               </div>
             </div>
           )}
           {message.type === 'image' ? (
             <img 
-              src={message.content} 
+              src={decryptedContent} 
               alt="attachment" 
               onClick={() => setIsFullscreen(true)}
               className="max-w-[240px] md:max-w-[320px] rounded-xl object-contain bg-black/5 cursor-pointer hover:opacity-90 transition-opacity"
             />
           ) : message.type === 'file' ? (
             <a 
-              href={message.content} 
+              href={decryptedContent} 
               target="_blank" 
               rel="noopener noreferrer"
               className="flex items-center gap-3 pr-12 hover:opacity-80 transition-opacity"
@@ -205,7 +244,7 @@ export default function MessageBubble({ message, prevMessage, onReply }) {
                 <FileText size={20} className={isMine ? 'text-white' : 'text-primary'} />
               </div>
               <span className="font-medium underline underline-offset-2 truncate max-w-[180px]">
-                {getFileName(message.content)}
+                {getFileName(decryptedContent)}
               </span>
             </a>
           ) : (
@@ -213,12 +252,13 @@ export default function MessageBubble({ message, prevMessage, onReply }) {
               className="whitespace-pre-wrap pr-12"
               style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
             >
-              {message.content}
+              {decryptedContent}
             </p>
           )}
 
           {/* Timestamp + read receipt */}
           <div className="absolute bottom-1.5 right-2 flex items-center gap-1 opacity-70">
+            {message.encrypted && <span className="text-[9px]" title="End-to-End Encrypted">🔒</span>}
             <span className="text-[10px] text-subtle-text leading-none">
               {formatTime(message.createdAt)}
             </span>
@@ -279,7 +319,7 @@ export default function MessageBubble({ message, prevMessage, onReply }) {
             <X size={24} />
           </button>
           <img 
-            src={message.content} 
+            src={decryptedContent} 
             alt="fullscreen attachment" 
             className="max-w-full max-h-full object-contain select-none"
             onClick={(e) => e.stopPropagation()} // prevent closing when clicking the image itself
