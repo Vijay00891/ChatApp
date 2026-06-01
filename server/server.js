@@ -15,9 +15,13 @@ const app = express();
 const server = http.createServer(app);
 
 const ALLOWED_ORIGINS = [
-  process.env.CLIENT_URL || 'http://localhost:5173',
+  process.env.CLIENT_URL || 'http://localhost:3000',
+  'http://localhost:3000',
   'http://localhost:5173',
+  'http://192.168.0.103:3000',
+  'http://192.168.0.107:3000',
   'http://192.168.0.103:5173',
+  'http://192.168.0.107:5173',
 ];
 
 // Socket.io setup

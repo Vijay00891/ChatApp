@@ -225,6 +225,18 @@ export function useWebRTC() {
     return false;
   }, []);
 
+  // Ensure video streams are attached to video elements when call connects
+  useEffect(() => {
+    if (callState === 'connected') {
+      if (localVideoRef.current && localStreamRef.current) {
+        localVideoRef.current.srcObject = localStreamRef.current;
+      }
+      if (remoteVideoRef.current && remoteStreamRef.current) {
+        remoteVideoRef.current.srcObject = remoteStreamRef.current;
+      }
+    }
+  }, [callState]);
+
   // Socket listeners
   useEffect(() => {
     const handleIncomingCall = ({ callerId, callerName, callerAvatar, callType: type, offer }) => {
