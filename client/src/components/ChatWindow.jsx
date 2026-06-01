@@ -342,6 +342,12 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
       }
     });
 
+    on('message_updated', instanceId, (data) => {
+      setMessages((prev) =>
+        prev.map((m) => (m._id === data.messageId ? { ...m, content: data.content } : m))
+      );
+    });
+
     return () => {
       off('message_delivered', instanceId);
       off('message_read', instanceId);
@@ -349,6 +355,7 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
       off('typing_stop', instanceId);
       off('reaction_update', instanceId);
       off('room_updated', instanceId);
+      off('message_updated', instanceId);
     };
   }, [room?._id, instanceId, on, off, emit, user?._id, sendNotification]);
 

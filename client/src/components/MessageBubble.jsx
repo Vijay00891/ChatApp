@@ -166,7 +166,7 @@ export default function MessageBubble({ message, prevMessage, onReply }) {
             onTouchMove={handleTouchEnd}
             className={`
               relative shadow-google text-sm leading-relaxed overflow-hidden select-none
-            ${message.type === 'image' ? 'p-1' : 'px-4 py-2'}
+            ${message.type === 'image' || isVideoUrl(message.content) ? 'p-1' : 'px-4 py-2'}
             ${isMine
               ? 'bg-sent-bubble text-on-surface rounded-bubble rounded-br-sm'
               : 'bg-received-bubble text-on-surface border border-border-color rounded-bubble rounded-bl-sm'
@@ -193,6 +193,13 @@ export default function MessageBubble({ message, prevMessage, onReply }) {
               alt="attachment" 
               onClick={() => setIsFullscreen(true)}
               className="max-w-[240px] md:max-w-[320px] rounded-xl object-contain bg-black/5 cursor-pointer hover:opacity-90 transition-opacity"
+            />
+          ) : isVideoUrl(message.content) ? (
+            <video 
+              src={message.content} 
+              controls
+              preload="metadata"
+              className="max-w-[240px] md:max-w-[320px] rounded-xl bg-black/5 outline-none" 
             />
           ) : message.type === 'file' ? (
             <a 

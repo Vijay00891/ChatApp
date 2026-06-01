@@ -42,8 +42,9 @@ export default function InputBar({ roomId, onSend, disabled, replyingTo, onCance
     const file = e.target.files[0];
     if (file) {
       const isImage = file.type.startsWith('image/');
-      const previewUrl = isImage ? URL.createObjectURL(file) : null;
-      setAttachment({ file, previewUrl, isImage, name: file.name });
+      const isVideo = file.type.startsWith('video/');
+      const previewUrl = (isImage || isVideo) ? URL.createObjectURL(file) : null;
+      setAttachment({ file, previewUrl, isImage, isVideo, name: file.name });
     }
     e.target.value = ''; // Reset input
   };
@@ -53,18 +54,29 @@ export default function InputBar({ roomId, onSend, disabled, replyingTo, onCance
     setAttachment(null);
   };
 
-  const uploadToCloudinary = async (file) => {
+  const uploadToBackend = async (file) => {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
+    
+    const token = localStorage.getItem('token');
+    const baseUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:8000';
+    
+    const headers = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
     
     const res = await fetch(
-      `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/auto/upload`,
-      { method: 'POST', body: formData }
+      `${baseUrl}/api/messages/upload`,
+      { 
+        method: 'POST', 
+        headers,
+        body: formData 
+      }
     );
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Upload failed');
-    return data.secure_url;
+    if (!res.ok) throw new Error(data.message || 'Upload failed');
+    return data;
   };
 
   const handleSend = useCallback(async () => {
@@ -74,15 +86,12 @@ export default function InputBar({ roomId, onSend, disabled, replyingTo, onCance
     try {
       if (attachment) {
         setIsUploading(true);
-        // If Cloudinary env vars are missing, we'll throw an error
-        if (!import.meta.env.VITE_CLOUDINARY_CLOUD_NAME) {
-          alert('Cloudinary is not configured! Check your .env file.');
-          setIsUploading(false);
-          return;
-        }
-        const fileUrl = await uploadToCloudinary(attachment.file);
+        const data = await uploadToBackend(attachment.file);
+        
+        const fileUrl = attachment.isImage ? data.url : (data.videoUrl || data.url);
         // Append filename to URL so the receiver can display it
         const finalUrl = `${fileUrl}?filename=${encodeURIComponent(attachment.name)}`;
+        
         onSend(finalUrl, attachment.isImage ? 'image' : 'file');
         removeAttachment();
       }
@@ -100,7 +109,7 @@ export default function InputBar({ roomId, onSend, disabled, replyingTo, onCance
       if (textareaRef.current) textareaRef.current.style.height = 'auto';
     } catch (error) {
       console.error('Send failed:', error);
-      alert('Failed to send image: ' + error.message);
+      alert('Failed to send file: ' + error.message);
     } finally {
       setIsUploading(false);
     }
@@ -152,6 +161,13 @@ export default function InputBar({ roomId, onSend, disabled, replyingTo, onCance
                 src={attachment.previewUrl} 
                 alt="preview" 
                 className="max-h-32 rounded-lg object-cover" 
+              />
+            ) : attachment.isVideo ? (
+              <video 
+                src={attachment.previewUrl} 
+                className="max-h-32 rounded-lg object-cover" 
+                muted
+                controls={false}
               />
             ) : (
               <div className="flex items-center gap-2 p-3 pr-10 bg-background rounded-lg">
