@@ -57,12 +57,7 @@ function RoomItem({ room, currentUserId, isSelected, onClick, isOnline, onPin, o
         </div>
         <div className="flex justify-between items-center gap-1 mt-0.5">
           <p className="text-xs text-subtle-text truncate leading-snug">
-            {lastMsg 
-              ? (lastMsg.encrypted 
-                  ? `🔒 ${lastMsg.type === 'image' ? 'Photo' : lastMsg.type === 'file' ? 'Document' : 'Encrypted message'}` 
-                  : (lastMsg.type === 'image' ? '📷 Photo' : lastMsg.type === 'file' ? '📄 Document' : lastMsg.content)
-                ) 
-              : 'No messages yet'}
+            {lastMsg ? lastMsg.content : 'No messages yet'}
           </p>
           <div className="flex items-center gap-1 shrink-0">
             {unread > 0 && (

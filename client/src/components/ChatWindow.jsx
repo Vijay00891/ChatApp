@@ -11,8 +11,6 @@ import InputBar from './InputBar';
 import TypingIndicator from './TypingIndicator';
 import CallUI from './CallUI';
 import { formatLastSeen } from '../lib/formatLastSeen';
-import useE2EE from '../hooks/useE2EE';
-import EncryptionBadge from './EncryptionBadge';
 
 function getPeerFromRoom(room, currentUserId) {
   if (!room) return null;
@@ -83,28 +81,6 @@ export default function ChatWindow({ room, onBack }) {
   const peerOnline = peer ? isUserOnline(peer?._id ?? peer) : false;
   const roomName = room?.type === 'group' ? room.name : peer?.name ?? 'Chat';
 
-  const { encrypt, decrypt, isReady, error: e2eeError } = useE2EE(user?._id, peer?._id ?? peer);
-  const decryptRef = useRef(decrypt);
-  
-  useEffect(() => {
-    decryptRef.current = room?.type === 'group' ? null : decrypt;
-  }, [decrypt, room?.type]);
-
-  const notifyMessage = useCallback((msg) => {
-    const senderName = msg.senderId?.name ?? 'Unknown';
-    if (msg.encrypted && decryptRef.current) {
-      decryptRef.current(msg.content, msg.iv)
-        .then((decrypted) => {
-          sendNotification(senderName, msg.type === 'image' ? '📷 Photo' : msg.type === 'file' ? '📄 Document' : decrypted);
-        })
-        .catch(() => {
-          sendNotification(senderName, '🔒 Encrypted message');
-        });
-    } else {
-      sendNotification(senderName, msg.type === 'image' ? '📷 Photo' : msg.type === 'file' ? '📄 Document' : msg.content);
-    }
-  }, [sendNotification]);
-
   // Fetch history
   useEffect(() => {
     if (!room?._id) return;
@@ -153,7 +129,9 @@ export default function ChatWindow({ room, onBack }) {
 
         if ((msg.senderId?._id ?? msg.senderId) !== user?._id) {
           emit('message_ack', { messageId: msg._id, roomId: room._id });
-          notifyMessage(msg);
+          // Send notification for incoming message
+          const senderName = msg.senderId?.name ?? 'Unknown';
+          sendNotification(senderName, msg.content);
         }
       }
     });
@@ -188,7 +166,9 @@ export default function ChatWindow({ room, onBack }) {
       });
       roomMessages.forEach((msg) => {
         emit('message_ack', { messageId: msg._id, roomId: room._id });
-        notifyMessage(msg);
+        // Send notification for pending messages
+        const senderName = msg.senderId?.name ?? 'Unknown';
+        sendNotification(senderName, msg.content);
       });
     });
 
@@ -200,7 +180,9 @@ export default function ChatWindow({ room, onBack }) {
       });
       missed.forEach((msg) => {
         emit('message_ack', { messageId: msg._id, roomId: room._id });
-        notifyMessage(msg);
+        // Send notification for synced messages
+        const senderName = msg.senderId?.name ?? 'Unknown';
+        sendNotification(senderName, msg.content);
       });
     });
 
@@ -231,7 +213,7 @@ export default function ChatWindow({ room, onBack }) {
       off('typing_stop', instanceId);
       off('reaction_update', instanceId);
     };
-  }, [room?._id, instanceId, on, off, emit, user?._id, notifyMessage]);
+  }, [room?._id, instanceId, on, off, emit, user?._id, sendNotification]);
 
   // Ensure the active room is rejoined after reconnect and request any pending messages
   useEffect(() => {
@@ -247,7 +229,7 @@ export default function ChatWindow({ room, onBack }) {
   }, [messages, peerTyping]);
 
   const handleSend = useCallback(
-    (content, type = 'text', encryptionData = null) => {
+    (content, type = 'text') => {
       if (!room?._id) return;
       // Add optimistic message for instant UI feedback
       const tempId = `temp_${Date.now()}`;
@@ -256,27 +238,14 @@ export default function ChatWindow({ room, onBack }) {
         _id: tempId,
         roomId: room._id,
         senderId: user,
-        content, // plaintext
+        content,
         type,
         replyTo: replyingTo,
         status: 'sent',
         createdAt: new Date().toISOString(),
-        encrypted: !!encryptionData,
-        iv: encryptionData?.iv || null,
       };
       setMessages((prev) => [...prev, optimistic]);
-
-      const emitPayload = {
-        roomId: room._id,
-        content: encryptionData ? encryptionData.ciphertext : content,
-        type,
-        replyTo: replyingTo?._id,
-      };
-      if (encryptionData) {
-        emitPayload.iv = encryptionData.iv;
-        emitPayload.encrypted = true;
-      }
-      emit('send_message', emitPayload);
+      emit('send_message', { roomId: room._id, content, type, replyTo: replyingTo?._id });
       setReplyingTo(null);
     },
     [room?._id, user, emit, replyingTo]
@@ -308,7 +277,7 @@ export default function ChatWindow({ room, onBack }) {
           <h2 className="text-sm font-semibold text-on-surface truncate leading-tight">
             {roomName}
           </h2>
-          <p className="text-xs text-subtle-text leading-tight mb-0.5">
+          <p className="text-xs text-subtle-text leading-tight">
             {peerTyping ? (
               <span className="text-primary animate-pulse">typing…</span>
             ) : (
@@ -318,9 +287,6 @@ export default function ChatWindow({ room, onBack }) {
               )
             )}
           </p>
-          {room?.type !== 'group' && (
-            <EncryptionBadge isReady={isReady} error={e2eeError} />
-          )}
         </div>
 
         <div className="flex items-center gap-1">
@@ -369,7 +335,6 @@ export default function ChatWindow({ room, onBack }) {
                 message={item.value}
                 prevMessage={prevMsg}
                 onReply={() => setReplyingTo(item.value)}
-                decrypt={room?.type === 'group' ? null : decrypt}
               />
             );
           })}
@@ -385,8 +350,6 @@ export default function ChatWindow({ room, onBack }) {
         disabled={!room?._id} 
         replyingTo={replyingTo}
         onCancelReply={() => setReplyingTo(null)}
-        isReady={room?.type === 'group' ? true : isReady}
-        encrypt={room?.type === 'group' ? null : encrypt}
       />
 
       {/* Call UI */}

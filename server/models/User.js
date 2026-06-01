@@ -47,10 +47,6 @@ const userSchema = new mongoose.Schema(
         ref: 'User',
       },
     ],
-    publicKey: {
-      type: Object,
-      default: null,
-    },
   },
   { timestamps: true }
 );

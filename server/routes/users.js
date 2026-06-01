@@ -56,36 +56,4 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 });
 
-// PUT /api/users/public-key
-router.put('/public-key', authMiddleware, async (req, res) => {
-  try {
-    const { publicKey } = req.body;
-    if (!publicKey) {
-      return res.status(400).json({ error: 'Public key is required' });
-    }
-    await User.findByIdAndUpdate(req.user._id, { publicKey });
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Save public key error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// GET /api/users/:userId/public-key
-router.get('/:userId/public-key', authMiddleware, async (req, res) => {
-  try {
-    const user = await User.findById(req.params.userId);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    if (!user.publicKey) {
-      return res.status(404).json({ error: 'No public key found' });
-    }
-    res.json({ publicKey: user.publicKey });
-  } catch (error) {
-    console.error('Get public key error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
 module.exports = router;

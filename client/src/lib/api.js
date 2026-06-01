@@ -43,8 +43,6 @@ export const usersAPI = {
   search: (query) => api.get(`/users/search?q=${encodeURIComponent(query)}`),
   getContacts: () => api.get('/users/contacts'),
   addContact: (userId) => api.post(`/users/contacts/${userId}`),
-  uploadPublicKey: (publicKey) => api.put('/users/public-key', { publicKey }),
-  getPublicKey: (userId) => api.get(`/users/${userId}/public-key`),
 };
 
 // --- Rooms ---

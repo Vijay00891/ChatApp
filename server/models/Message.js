@@ -16,14 +16,8 @@ const messageSchema = new mongoose.Schema(
     content: {
       type: String,
       required: true,
-    },
-    iv: {
-      type: String,
-      required: true,
-    },
-    encrypted: {
-      type: Boolean,
-      default: true,
+      trim: true,
+      maxlength: 5000,
     },
     type: {
       type: String,

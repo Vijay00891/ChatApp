@@ -4,7 +4,7 @@ import { useSocket } from '../context/SocketContext';
 
 const EMOJI_LIST = ['😀','😂','😍','🥺','😎','🤔','👍','❤️','🎉','🔥','✨','😢','🙏','😅','🤣','💯'];
 
-export default function InputBar({ roomId, onSend, disabled, replyingTo, onCancelReply, isReady, encrypt }) {
+export default function InputBar({ roomId, onSend, disabled, replyingTo, onCancelReply }) {
   const [text, setText] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
@@ -83,24 +83,12 @@ export default function InputBar({ roomId, onSend, disabled, replyingTo, onCance
         const fileUrl = await uploadToCloudinary(attachment.file);
         // Append filename to URL so the receiver can display it
         const finalUrl = `${fileUrl}?filename=${encodeURIComponent(attachment.name)}`;
-        
-        if (!isReady) {
-          alert('Encryption initializing...');
-          setIsUploading(false);
-          return;
-        }
-        const { ciphertext, iv } = await encrypt(finalUrl);
-        onSend(finalUrl, attachment.isImage ? 'image' : 'file', { ciphertext, iv });
+        onSend(finalUrl, attachment.isImage ? 'image' : 'file');
         removeAttachment();
       }
 
       if (trimmed) {
-        if (!isReady) {
-          alert('Encryption initializing...');
-          return;
-        }
-        const { ciphertext, iv } = await encrypt(trimmed);
-        onSend(trimmed, 'text', { ciphertext, iv });
+        onSend(trimmed, 'text');
       }
 
       setText('');
@@ -112,11 +100,11 @@ export default function InputBar({ roomId, onSend, disabled, replyingTo, onCance
       if (textareaRef.current) textareaRef.current.style.height = 'auto';
     } catch (error) {
       console.error('Send failed:', error);
-      alert('Failed to send message: ' + error.message);
+      alert('Failed to send image: ' + error.message);
     } finally {
       setIsUploading(false);
     }
-  }, [text, attachment, disabled, onSend, isTyping, emit, roomId, isUploading, isReady, encrypt]);
+  }, [text, attachment, disabled, onSend, isTyping, emit, roomId, isUploading]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
