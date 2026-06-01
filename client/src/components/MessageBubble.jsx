@@ -203,6 +203,7 @@ export default function MessageBubble({ message, prevMessage, onReply }) {
               </div>
               <div className="truncate text-on-surface/70 max-w-[200px]">
                 {message.replyTo.type === 'image' ? '📷 Photo' 
+                  : message.replyTo.type === 'video' ? '🎬 Video'
                   : message.replyTo.type === 'file' ? '📄 Document' 
                   : message.replyTo.content}
               </div>
@@ -215,13 +216,30 @@ export default function MessageBubble({ message, prevMessage, onReply }) {
               onClick={() => setIsFullscreen(true)}
               className="max-w-[240px] md:max-w-[320px] rounded-xl object-contain bg-black/5 cursor-pointer hover:opacity-90 transition-opacity"
             />
-          ) : isVideoUrl(message.content) ? (
-            <video 
-              src={message.content} 
-              controls
-              preload="metadata"
-              className="max-w-[240px] md:max-w-[320px] rounded-xl bg-black/5 outline-none" 
-            />
+          ) : message.type === 'video' || isVideoUrl(message.content) ? (
+            <div className="relative max-w-[240px] md:max-w-[320px]">
+              {(message.mediaStatus === 'processing' || message.mediaStatus === 'uploaded') ? (
+                <div className="relative w-full aspect-video bg-black/10 rounded-xl overflow-hidden flex flex-col items-center justify-center">
+                  {message.thumbnailUrl && (
+                    <img src={message.thumbnailUrl} alt="thumbnail" className="absolute inset-0 w-full h-full object-cover blur-sm opacity-40" />
+                  )}
+                  <div className="z-10 flex flex-col items-center gap-2 bg-surface/60 backdrop-blur-md p-3 rounded-xl shadow-sm border border-border-color">
+                    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    <span className="text-[10px] font-semibold text-primary tracking-wide">
+                      {message.mediaProgress ? `PROCESSING ${message.mediaProgress}%` : 'PROCESSING...'}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <video 
+                  src={message.content} 
+                  controls
+                  preload="metadata"
+                  poster={message.thumbnailUrl || undefined}
+                  className="w-full rounded-xl bg-black/5 outline-none" 
+                />
+              )}
+            </div>
           ) : message.type === 'file' ? (
             <a 
               href={message.content} 

@@ -21,8 +21,21 @@ const messageSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['text', 'image', 'file'],
+      enum: ['text', 'image', 'file', 'video'],
       default: 'text',
+    },
+    mediaStatus: {
+      type: String,
+      enum: ['uploaded', 'processing', 'completed', 'failed'],
+      default: null,
+    },
+    thumbnailUrl: {
+      type: String,
+      default: null,
+    },
+    mediaJobId: {
+      type: String,
+      default: null,
     },
     status: {
       type: String,

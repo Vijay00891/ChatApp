@@ -223,6 +223,11 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
           const tempId = pendingTempId.current;
           if (tempId && prev.some((m) => m._id === tempId)) {
             pendingTempId.current = null;
+            // Execute any pending callback for this message
+            if (pendingCallbacks.current[tempId]) {
+              pendingCallbacks.current[tempId](msg._id);
+              delete pendingCallbacks.current[tempId];
+            }
             return prev.map((m) => (m._id === tempId ? msg : m));
           }
           return [...prev, msg];
@@ -344,7 +349,18 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
 
     on('message_updated', instanceId, (data) => {
       setMessages((prev) =>
-        prev.map((m) => (m._id === data.messageId ? { ...m, content: data.content } : m))
+        prev.map((m) => (m._id === data.messageId ? { ...m, content: data.content, thumbnailUrl: data.thumbnailUrl, mediaStatus: data.mediaStatus } : m))
+      );
+    });
+
+    on('media_processing_update', instanceId, (data) => {
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m._id === data.messageId) {
+            return { ...m, mediaStatus: data.status, mediaProgress: data.progress };
+          }
+          return m;
+        })
       );
     });
 
@@ -356,6 +372,7 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
       off('reaction_update', instanceId);
       off('room_updated', instanceId);
       off('message_updated', instanceId);
+      off('media_processing_update', instanceId);
     };
   }, [room?._id, instanceId, on, off, emit, user?._id, sendNotification]);
 
@@ -372,18 +389,26 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, peerTyping]);
 
+  const pendingCallbacks = useRef({});
+
   const handleSend = useCallback(
-    (content, type = 'text') => {
+    (content, type = 'text', options = {}) => {
       if (!room?._id) return;
       // Add optimistic message for instant UI feedback
       const tempId = `temp_${Date.now()}`;
       pendingTempId.current = tempId;
+      
+      if (options.onMessageCreated) {
+        pendingCallbacks.current[tempId] = options.onMessageCreated;
+      }
+
       const optimistic = {
         _id: tempId,
         roomId: room._id,
         senderId: user,
         content,
         type,
+        mediaStatus: options.mediaStatus || null,
         replyTo: replyingTo,
         status: 'sent',
         createdAt: new Date().toISOString(),

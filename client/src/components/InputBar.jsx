@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { Send, Smile, Paperclip, X, Loader2, Image as ImageIcon, FileText } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
+import { compressImage } from '../utils/imageCompressor';
 
 const EMOJI_LIST = ['😀','😂','😍','🥺','😎','🤔','👍','❤️','🎉','🔥','✨','😢','🙏','😅','🤣','💯'];
 
@@ -10,6 +11,8 @@ export default function InputBar({ roomId, onSend, disabled, replyingTo, onCance
   const [isTyping, setIsTyping] = useState(false);
   const [attachment, setAttachment] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState(''); // 'compressing', 'uploading', 'processing'
   const typingTimerRef = useRef(null);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -54,35 +57,134 @@ export default function InputBar({ roomId, onSend, disabled, replyingTo, onCance
     setAttachment(null);
   };
 
+  // ── Image path: Compress in browser → upload directly to Cloudinary ───────
+  const uploadImageToCloudinary = async (file) => {
+    setUploadStatus('compressing');
+    setUploadProgress(10);
+
+    // 1. Compress image in browser
+    const { compressedFile } = await compressImage(file);
+
+    setUploadStatus('uploading');
+    setUploadProgress(30);
+
+    // 2. Upload compressed image directly to Cloudinary (no server hop)
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+    if (!cloudName || !uploadPreset) {
+      throw new Error('Cloudinary is not configured. Check your .env file.');
+    }
+
+    const formData = new FormData();
+    formData.append('file', compressedFile);
+    formData.append('upload_preset', uploadPreset);
+
+    // Use XMLHttpRequest for upload progress tracking
+    const url = await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`);
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          // Map upload progress to 30–95% range
+          const pct = 30 + Math.round((e.loaded / e.total) * 65);
+          setUploadProgress(pct);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const data = JSON.parse(xhr.responseText);
+          resolve(data.secure_url);
+        } else {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            reject(new Error(data.error?.message || 'Cloudinary upload failed'));
+          } catch {
+            reject(new Error('Upload failed'));
+          }
+        }
+      };
+
+      xhr.onerror = () => reject(new Error('Network error during upload'));
+      xhr.send(formData);
+    });
+
+    setUploadProgress(100);
+    return url;
+  };
+
+  // ── Video/file path: Upload to backend with progress tracking ─────────────
   const uploadToBackend = async (file) => {
+    setUploadStatus('uploading');
+    setUploadProgress(5);
+
     const formData = new FormData();
     formData.append('file', file);
-    
-    // Pass Cloudinary credentials so server can upload after compression
+
+    // Pass Cloudinary credentials
     const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
     const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
     if (cloudName) formData.append('cloudName', cloudName);
     if (uploadPreset) formData.append('uploadPreset', uploadPreset);
-    
+
     const token = localStorage.getItem('token');
     const baseUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:8000';
-    
-    const headers = {};
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-    
-    const res = await fetch(
-      `${baseUrl}/api/messages/upload`,
-      { 
-        method: 'POST', 
-        headers,
-        body: formData 
-      }
-    );
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Upload failed');
+
+    // Use XMLHttpRequest for upload progress
+    const data = await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${baseUrl}/api/messages/upload`);
+      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const pct = 5 + Math.round((e.loaded / e.total) * 90);
+          setUploadProgress(pct);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(JSON.parse(xhr.responseText));
+        } else {
+          try {
+            const err = JSON.parse(xhr.responseText);
+            reject(new Error(err.message || 'Upload failed'));
+          } catch {
+            reject(new Error('Upload failed'));
+          }
+        }
+      };
+
+      xhr.onerror = () => reject(new Error('Network error during upload'));
+      xhr.send(formData);
+    });
+
+    setUploadProgress(100);
     return data;
+  };
+
+  // ── Trigger background video processing after message is saved ────────────
+  const startVideoProcessing = async (messageId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const baseUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:8000';
+      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+      const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+      await fetch(`${baseUrl}/api/messages/upload/video-process`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ messageId, cloudName, uploadPreset }),
+      });
+    } catch (err) {
+      console.error('[InputBar] Failed to start video processing:', err);
+    }
   };
 
   const handleSend = useCallback(async () => {
@@ -92,13 +194,32 @@ export default function InputBar({ roomId, onSend, disabled, replyingTo, onCance
     try {
       if (attachment) {
         setIsUploading(true);
-        const data = await uploadToBackend(attachment.file);
-        
-        const fileUrl = attachment.isImage ? data.url : (data.videoUrl || data.url);
-        // Append filename to URL so the receiver can display it
-        const finalUrl = `${fileUrl}?filename=${encodeURIComponent(attachment.name)}`;
-        
-        onSend(finalUrl, attachment.isImage ? 'image' : 'file');
+        setUploadProgress(0);
+
+        if (attachment.isImage) {
+          // ── IMAGE: Compress in browser → upload to Cloudinary → send ──
+          const imageUrl = await uploadImageToCloudinary(attachment.file);
+          const finalUrl = `${imageUrl}?filename=${encodeURIComponent(attachment.name)}`;
+          onSend(finalUrl, 'image');
+        } else if (attachment.isVideo) {
+          // ── VIDEO: Upload original immediately → send → process in background
+          const data = await uploadToBackend(attachment.file);
+          const videoUrl = data.url;
+          const finalUrl = `${videoUrl}?filename=${encodeURIComponent(attachment.name)}`;
+          // Send the message with the original video URL right away
+          // onSend will create the message via socket, and once we get the
+          // message ID back, we trigger background processing
+          onSend(finalUrl, 'video', {
+            mediaStatus: 'uploaded',
+            onMessageCreated: (messageId) => startVideoProcessing(messageId),
+          });
+        } else {
+          // ── FILE: Upload to backend → send ────────────────────────────
+          const data = await uploadToBackend(attachment.file);
+          const finalUrl = `${data.url}?filename=${encodeURIComponent(attachment.name)}`;
+          onSend(finalUrl, 'file');
+        }
+
         removeAttachment();
       }
 
@@ -107,6 +228,8 @@ export default function InputBar({ roomId, onSend, disabled, replyingTo, onCance
       }
 
       setText('');
+      setUploadStatus('');
+      setUploadProgress(0);
       clearTimeout(typingTimerRef.current);
       if (isTyping) {
         setIsTyping(false);
@@ -118,6 +241,8 @@ export default function InputBar({ roomId, onSend, disabled, replyingTo, onCance
       alert('Failed to send file: ' + error.message);
     } finally {
       setIsUploading(false);
+      setUploadStatus('');
+      setUploadProgress(0);
     }
   }, [text, attachment, disabled, onSend, isTyping, emit, roomId, isUploading]);
 
@@ -145,7 +270,10 @@ export default function InputBar({ roomId, onSend, disabled, replyingTo, onCance
                 {replyingTo.senderId?.name || 'Someone'}
               </span>
               <span className="text-sm text-subtle-text truncate">
-                {replyingTo.type === 'image' ? '📷 Photo' : replyingTo.type === 'file' ? '📄 Document' : replyingTo.content}
+                {replyingTo.type === 'image' ? '📷 Photo' 
+                  : replyingTo.type === 'video' ? '🎬 Video'
+                  : replyingTo.type === 'file' ? '📄 Document' 
+                  : replyingTo.content}
               </span>
             </div>
             <button 
@@ -190,6 +318,23 @@ export default function InputBar({ roomId, onSend, disabled, replyingTo, onCance
             >
               <X size={16} />
             </button>
+
+            {/* Upload Progress Bar */}
+            {isUploading && (
+              <div className="absolute bottom-0 left-0 right-0">
+                <div className="h-1 bg-black/20 rounded-b-lg overflow-hidden">
+                  <div
+                    className="h-full bg-primary transition-all duration-300 ease-out"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+                <div className="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded-md font-medium">
+                  {uploadStatus === 'compressing' ? '🔄 Compressing...' 
+                    : uploadStatus === 'uploading' ? `⬆️ ${uploadProgress}%` 
+                    : '⏳ Processing...'}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -230,8 +375,8 @@ export default function InputBar({ roomId, onSend, disabled, replyingTo, onCance
         id="btn-attach"
         className="btn-icon shrink-0 mb-0.5"
         onClick={() => fileInputRef.current?.click()}
-        aria-label="Attach image"
-        title="Attach image"
+        aria-label="Attach file"
+        title="Attach file"
         disabled={disabled || isUploading}
       >
         <Paperclip size={20} />

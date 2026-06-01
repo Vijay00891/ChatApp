@@ -6,14 +6,8 @@ const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const path = require('path');
-const {
-  optimizeImage,
-  getVideoMetadata,
-  compressVideo,
-  extractVideoThumbnail,
-  uploadFileHelper,
-  runBackgroundVideoCompression
-} = require('../utils/mediaOptimizer');
+const { uploadFileHelper } = require('../utils/mediaOptimizer');
+const { addJob, getJobStatus } = require('../utils/videoQueue');
 
 const tempDir = path.join(__dirname, '../temp');
 if (!fs.existsSync(tempDir)) {
@@ -29,7 +23,11 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ storage });
+// Support files up to 500MB
+const upload = multer({
+  storage,
+  limits: { fileSize: 500 * 1024 * 1024 },
+});
 
 const router = express.Router();
 
@@ -97,7 +95,18 @@ router.patch('/read/:roomId', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Server error.' });
   }
 });
-// POST /api/messages/upload — upload and compress media
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/messages/upload — Upload media files
+//
+// IMAGES: Images are now compressed in the browser and uploaded directly to
+//         Cloudinary from the client. This endpoint is no longer used for images.
+//
+// VIDEOS: Upload original → save to Cloudinary immediately → queue background
+//         compression → return response instantly (< 2 seconds after upload).
+//
+// FILES:  Non-media files are uploaded to Cloudinary directly.
+// ─────────────────────────────────────────────────────────────────────────────
 router.post('/upload', authMiddleware, upload.single('file'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: 'No file uploaded.' });
@@ -107,143 +116,121 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req, res) =
   const originalSize = req.file.size;
   const mimeType = req.file.mimetype;
   const fileExt = path.extname(originalname).toLowerCase();
-  
+
   // Cloudinary credentials passed from the client
   const cloudOpts = {
     cloudName: req.body.cloudName,
-    uploadPreset: req.body.uploadPreset
+    uploadPreset: req.body.uploadPreset,
   };
-  
+
   try {
-    const isImage = mimeType.startsWith('image/');
     const isVideo = mimeType.startsWith('video/');
 
-    if (isImage) {
-      console.log(`[Upload Endpoint] Optimizing image: ${originalname}`);
-      const result = await optimizeImage(tempFilePath, originalname, tempDir);
-      
-      const url = await uploadFileHelper(result.optimizedPath, result.optimizedFileName, cloudOpts);
-      const thumbnailUrl = await uploadFileHelper(result.thumbnailPath, result.thumbnailFileName, cloudOpts);
-      
-      // Cleanup temp files
-      try {
-        if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
-        if (fs.existsSync(result.optimizedPath)) fs.unlinkSync(result.optimizedPath);
-        if (fs.existsSync(result.thumbnailPath)) fs.unlinkSync(result.thumbnailPath);
-      } catch (e) {
-        console.error('Error during image temp files cleanup:', e);
-      }
-      
+    if (isVideo) {
+      // ── VIDEO: Upload original immediately, compress in background ──────
+      console.log(`[Upload] Video received: ${originalname} (${(originalSize / 1024 / 1024).toFixed(2)} MB)`);
+
+      // 1. Upload the original video to Cloudinary right away
+      const uniqueId = uuidv4();
+      const originalUrl = await uploadFileHelper(tempFilePath, `${uniqueId}-orig${fileExt}`, cloudOpts);
+
+      // 2. Return response immediately — client sees the message right away
+      //    The jobId allows polling for compression status
       return res.json({
-        url,
-        thumbnailUrl,
-        width: result.width,
-        height: result.height,
-        originalSize: result.originalSize,
-        compressedSize: result.compressedSize,
-        compressionRatio: result.compressionRatio
+        url: originalUrl,
+        type: 'video',
+        mediaStatus: 'uploaded',
+        originalSize,
       });
     }
 
-    if (isVideo) {
-      console.log(`[Upload Endpoint] Analyzing video: ${originalname} (${(originalSize / 1024 / 1024).toFixed(2)} MB)`);
-      const metadata = await getVideoMetadata(tempFilePath);
-      
-      const uniqueId = uuidv4();
-      const compressedFileName = `${uniqueId}.mp4`;
-      const compressedPath = path.join(tempDir, compressedFileName);
-      
-      const thumbFileName = `${uniqueId}-thumb.jpg`;
-      const tempThumbPath = path.join(tempDir, thumbFileName);
-      
-      // Extract thumbnail at 5s (320x180)
-      await extractVideoThumbnail(tempFilePath, tempThumbPath);
-      const thumbnailUrl = await uploadFileHelper(tempThumbPath, thumbFileName, cloudOpts);
-      
-      const isAsync = originalSize > 50 * 1024 * 1024; // > 50 MB
-      
-      if (isAsync) {
-        console.log(`[Upload Endpoint] Video size exceeds 50MB. Compressing asynchronously...`);
-        // Upload original video to get temporary URL
-        const originalUrl = await uploadFileHelper(tempFilePath, `${uniqueId}-orig${fileExt}`, cloudOpts);
-        
-        // Run background thread
-        const io = req.app.get('io');
-        runBackgroundVideoCompression(
-          tempFilePath,
-          compressedPath,
-          tempThumbPath,
-          originalUrl,
-          compressedFileName,
-          thumbFileName,
-          io,
-          cloudOpts
-        );
-        
-        return res.json({
-          videoUrl: originalUrl,
-          thumbnailUrl,
-          duration: metadata.duration,
-          resolution: metadata.resolution,
-          originalSize,
-          compressedSize: originalSize, // same as original until compressed
-          compressionRatio: '0.0% (Processing...)'
-        });
-      } else {
-        console.log(`[Upload Endpoint] Compressing video synchronously...`);
-        await compressVideo(tempFilePath, compressedPath, metadata);
-        
-        const compressedSize = fs.statSync(compressedPath).size;
-        const compressionRatio = ((1 - compressedSize / originalSize) * 100).toFixed(1) + '%';
-        
-        const videoUrl = await uploadFileHelper(compressedPath, compressedFileName, cloudOpts);
-        
-        // Cleanup temp files
-        try {
-          if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
-          if (fs.existsSync(compressedPath)) fs.unlinkSync(compressedPath);
-          if (fs.existsSync(tempThumbPath)) fs.unlinkSync(tempThumbPath);
-        } catch (e) {
-          console.error('Error during video temp files cleanup:', e);
-        }
-        
-        return res.json({
-          videoUrl,
-          thumbnailUrl,
-          duration: metadata.duration,
-          resolution: metadata.resolution,
-          originalSize,
-          compressedSize,
-          compressionRatio
-        });
-      }
-    }
-
-    // Fallback for non-media files
-    console.log(`[Upload Endpoint] Storing raw file: ${originalname}`);
+    // ── NON-MEDIA FILES: Upload directly ─────────────────────────────────
+    console.log(`[Upload] File received: ${originalname}`);
     const uniqueId = uuidv4();
     const finalFileName = `${uniqueId}${fileExt}`;
     const url = await uploadFileHelper(tempFilePath, finalFileName, cloudOpts);
-    
+
     try {
       if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
     } catch (e) {}
-    
+
     return res.json({
       url,
       originalSize,
-      compressedSize: originalSize,
-      compressionRatio: '0.0%'
     });
 
   } catch (err) {
-    console.error('[Upload Endpoint] Upload error:', err);
-    // Cleanup on error
+    console.error('[Upload] Error:', err);
     try {
       if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
     } catch (e) {}
-    res.status(500).json({ message: 'Media compression/upload failed.' });
+    res.status(500).json({ message: 'Upload failed.' });
   }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/messages/upload/video-process — Start background video processing
+// Called after the message has been saved to DB (we need the messageId)
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/upload/video-process', authMiddleware, async (req, res) => {
+  try {
+    const { messageId, cloudName, uploadPreset } = req.body;
+
+    if (!messageId) {
+      return res.status(400).json({ message: 'messageId is required.' });
+    }
+
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res.status(404).json({ message: 'Message not found.' });
+    }
+
+    // Download the original video from Cloudinary to temp for processing
+    const originalUrl = message.content;
+    // We need the original file to process. Check if it still exists in temp.
+    // If not, we download it from the URL.
+    const uniqueId = uuidv4();
+    const tempInputPath = path.join(tempDir, `${uniqueId}-input.mp4`);
+
+    // Download the video from URL to temp
+    const response = await fetch(originalUrl);
+    if (!response.ok) throw new Error('Failed to download original video for processing');
+    const buffer = Buffer.from(await response.arrayBuffer());
+    fs.writeFileSync(tempInputPath, buffer);
+
+    const cloudOpts = { cloudName, uploadPreset };
+    const io = req.app.get('io');
+
+    // Update message status to processing
+    message.mediaStatus = 'processing';
+    const jobId = addJob({
+      messageId: message._id.toString(),
+      inputPath: tempInputPath,
+      cloudOpts,
+      io,
+    });
+    message.mediaJobId = jobId;
+    await message.save();
+
+    return res.json({
+      jobId,
+      status: 'processing',
+    });
+  } catch (err) {
+    console.error('[VideoProcess] Error:', err);
+    res.status(500).json({ message: 'Failed to start video processing.' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/messages/media/:jobId/status — Poll job processing status
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/media/:jobId/status', authMiddleware, (req, res) => {
+  const status = getJobStatus(req.params.jobId);
+  if (!status) {
+    return res.status(404).json({ message: 'Job not found.' });
+  }
+  res.json(status);
 });
 
 module.exports = router;
