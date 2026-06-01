@@ -15,6 +15,27 @@ function ReadReceipt({ status }) {
   return <Check size={14} className="text-subtle-text" />;
 }
 
+function isVideoUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  try {
+    const path = url.split('?')[0];
+    const extension = path.split('.').pop().toLowerCase();
+    const videoExtensions = ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv', '3gp', 'flv'];
+    if (videoExtensions.includes(extension)) return true;
+    
+    const urlObj = new URL(url);
+    const filename = urlObj.searchParams.get('filename');
+    if (filename) {
+      const fileExt = filename.split('.').pop().toLowerCase();
+      if (videoExtensions.includes(fileExt)) return true;
+    }
+  } catch (e) {
+    const videoExtensions = /\.(mp4|webm|ogg|mov|avi|mkv|3gp|flv)($|\?)/i;
+    return videoExtensions.test(url);
+  }
+  return false;
+}
+
 export default function MessageBubble({ message, prevMessage, onReply }) {
   const { user } = useAuth();
   const { emit } = useSocket();
