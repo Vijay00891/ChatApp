@@ -10,6 +10,7 @@ import MessageBubble from './MessageBubble';
 import InputBar from './InputBar';
 import TypingIndicator from './TypingIndicator';
 import CallUI from './CallUI';
+import { formatLastSeen } from '../lib/formatLastSeen';
 
 function getPeerFromRoom(room, currentUserId) {
   if (!room) return null;
@@ -49,7 +50,7 @@ function groupByDate(messages) {
 
 export default function ChatWindow({ room, onBack }) {
   const { user } = useAuth();
-  const { on, off, emit, isUserOnline, isConnected } = useSocket();
+  const { on, off, emit, isUserOnline, isConnected, getUserLastSeen } = useSocket();
   const { sendNotification } = useNotification();
   const {
     callState,
@@ -197,7 +198,7 @@ export default function ChatWindow({ room, onBack }) {
       }
     });
 
-    on('message_reacted', instanceId, (data) => {
+    on('reaction_update', instanceId, (data) => {
       setMessages((prev) =>
         prev.map((m) =>
           m._id === data.messageId ? { ...m, reactions: data.reactions } : m
@@ -210,7 +211,7 @@ export default function ChatWindow({ room, onBack }) {
       off('message_read', instanceId);
       off('typing_start', instanceId);
       off('typing_stop', instanceId);
-      off('message_reacted', instanceId);
+      off('reaction_update', instanceId);
     };
   }, [room?._id, instanceId, on, off, emit, user?._id, sendNotification]);
 
@@ -279,14 +280,11 @@ export default function ChatWindow({ room, onBack }) {
           <p className="text-xs text-subtle-text leading-tight">
             {peerTyping ? (
               <span className="text-primary animate-pulse">typing…</span>
-            ) : peerOnline ? (
-              'Online'
-            ) : peer?.lastSeen ? (
-              `Last seen ${new Date(peer.lastSeen).toLocaleTimeString([], {
-                hour: '2-digit', minute: '2-digit',
-              })}`
             ) : (
-              'Offline'
+              formatLastSeen(
+                peerOnline ? 'online' : 'offline',
+                peer ? getUserLastSeen(peer._id ?? peer, peer.lastSeen) : null
+              )
             )}
           </p>
         </div>

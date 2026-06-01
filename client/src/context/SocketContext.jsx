@@ -9,6 +9,7 @@ export function SocketProvider({ children }) {
   const socketRef = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const [lastSeenMap, setLastSeenMap] = useState({});
 
   // Message and typing listeners (stored so chat components can subscribe)
   const listeners = useRef({});
@@ -36,16 +37,10 @@ export function SocketProvider({ children }) {
 
     const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
     const socket = io(SERVER_URL, {
-      auth: { token },
+      auth: { token: token || localStorage.getItem("token") },
       reconnection: true,
-      reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
-      reconnectionDelayMax: 10000,
-      timeout: 20000,
-      transports: ['websocket', 'polling'],
-      pingInterval: 25000,
-      pingTimeout: 60000,
-      autoConnect: true,
+      reconnectionDelayMax: 5000,
     });
 
     socketRef.current = socket;
@@ -53,11 +48,13 @@ export function SocketProvider({ children }) {
     socket.on('connect', () => {
       setIsConnected(true);
       socket.emit('request_pending');
+      socket.emit('get_online_users');
     });
 
     socket.on('reconnect', () => {
       setIsConnected(true);
       socket.emit('request_pending');
+      socket.emit('get_online_users');
     });
 
     socket.on('disconnect', () => setIsConnected(false));
@@ -70,13 +67,18 @@ export function SocketProvider({ children }) {
       console.warn('Socket reconnect error:', err.message || err);
     });
 
-    socket.on('online_users', (users) => setOnlineUsers(users));
-    socket.on('user_connected', (userId) =>
-      setOnlineUsers((prev) => (prev.includes(userId) ? prev : [...prev, userId]))
-    );
-    socket.on('user_disconnected', (userId) =>
-      setOnlineUsers((prev) => prev.filter((id) => id !== userId))
-    );
+    socket.on('online_users_list', (users) => {
+      setOnlineUsers(users);
+    });
+
+    socket.on('user_online', ({ userId }) => {
+      setOnlineUsers((prev) => (prev.includes(userId) ? prev : [...prev, userId]));
+    });
+
+    socket.on('user_offline', ({ userId, lastSeen }) => {
+      setOnlineUsers((prev) => prev.filter((id) => id !== userId));
+      setLastSeenMap((prev) => ({ ...prev, [userId]: lastSeen }));
+    });
 
     // Forward events to registered listeners
     const forwardedEvents = [
@@ -95,6 +97,7 @@ export function SocketProvider({ children }) {
       'call:ended',
       'call:unavailable',
       'call:ice-candidate',
+      'reaction_update',
     ];
 
     forwardedEvents.forEach((event) => {
@@ -105,6 +108,9 @@ export function SocketProvider({ children }) {
     });
 
     return () => {
+      socket.off('online_users_list');
+      socket.off('user_online');
+      socket.off('user_offline');
       socket.disconnect();
       socketRef.current = null;
     };
@@ -115,8 +121,13 @@ export function SocketProvider({ children }) {
     [onlineUsers]
   );
 
+  const getUserLastSeen = useCallback(
+    (userId, fallback) => lastSeenMap[userId] || fallback,
+    [lastSeenMap]
+  );
+
   return (
-    <SocketContext.Provider value={{ isConnected, onlineUsers, isUserOnline, on, off, emit }}>
+    <SocketContext.Provider value={{ isConnected, onlineUsers, lastSeenMap, getUserLastSeen, isUserOnline, on, off, emit }}>
       {children}
     </SocketContext.Provider>
   );

@@ -4,28 +4,8 @@ const Room = require('../models/Room');
 const User = require('../models/User');
 const PendingDelivery = require('../models/PendingDelivery');
 
-// Map userId -> active socket IDs for presence and reconnect handling
-const userSockets = new Map();
-
-function addSocketForUser(userId, socketId) {
-  if (!userSockets.has(userId)) userSockets.set(userId, new Set());
-  userSockets.get(userId).add(socketId);
-}
-
-function removeSocketForUser(userId, socketId) {
-  const sockets = userSockets.get(userId);
-  if (!sockets) return;
-  sockets.delete(socketId);
-  if (sockets.size === 0) userSockets.delete(userId);
-}
-
-function getUserSocketIds(userId) {
-  return Array.from(userSockets.get(userId) || []);
-}
-
-function getOnlineUserIds() {
-  return Array.from(userSockets.keys());
-}
+// Map userId -> socketId for presence and reconnect handling
+const onlineUsers = new Map();
 
 const socketHandler = (io) => {
   // Auth middleware for socket connections
@@ -50,23 +30,21 @@ const socketHandler = (io) => {
     const userId = socket.userId;
     console.log(`✅ User connected: ${socket.user.name} (${userId})`);
 
-    addSocketForUser(userId, socket.id);
+    onlineUsers.set(userId, socket.id);
     socket.join(userId); // personal room for reliable delivery notifications
 
-    // Update user status to online in DB if this is the first active socket
-    if (getUserSocketIds(userId).length === 1) {
-      await User.findByIdAndUpdate(userId, { status: 'online' });
-      socket.broadcast.emit('user_connected', userId);
-    }
+    // Update user status to online in DB
+    await User.findByIdAndUpdate(userId, { status: 'online' });
+    socket.broadcast.emit('user_online', { userId });
 
-    // Send current online users list to the newly connected socket
-    socket.emit('online_users', getOnlineUserIds());
+    // ── get_online_users ───────────────────────────────────────────────────────
+    socket.on('get_online_users', () => {
+      socket.emit('online_users_list', Array.from(onlineUsers.keys()));
+    });
 
     // ── join_room ─────────────────────────────────────────────────────────────
-    // Frontend sends: emit('join_room', roomId)  — plain string
     socket.on('join_room', async (roomId) => {
       try {
-        // Accept both plain string and {roomId} object (defensive)
         const id = typeof roomId === 'object' ? roomId.roomId : roomId;
         const room = await Room.findOne({ _id: id, members: userId });
         if (!room) return socket.emit('error', { message: 'Room not found or access denied.' });
@@ -130,7 +108,7 @@ const socketHandler = (io) => {
           .filter((id) => id !== userId);
 
         const onlineRecipientIds = recipientIds.filter((recipientId) =>
-          userSockets.has(recipientId)
+          onlineUsers.has(recipientId)
         );
 
         if (onlineRecipientIds.length > 0) {
@@ -156,7 +134,7 @@ const socketHandler = (io) => {
         socket.emit('new_message', populated);
 
         // For offline recipients, create pending delivery entries so reconnect sync is efficient
-        const offlineRecipientIds = recipientIds.filter((recipientId) => !userSockets.has(recipientId));
+        const offlineRecipientIds = recipientIds.filter((recipientId) => !onlineUsers.has(recipientId));
         if (offlineRecipientIds.length > 0) {
           try {
             const docs = offlineRecipientIds.map((rid) => ({ recipientId: rid, messageId: message._id }));
@@ -174,7 +152,6 @@ const socketHandler = (io) => {
     });
 
     // ── typing events ─────────────────────────────────────────────────────────
-    // Frontend emits: 'typing_start' / 'typing_stop'
     socket.on('typing_start', ({ roomId }) => {
       socket.to(roomId).emit('typing_start', {
         userId,
@@ -188,7 +165,6 @@ const socketHandler = (io) => {
     });
 
     // ── message_read ──────────────────────────────────────────────────────────
-    // Frontend emits: emit('message_read', { messageId, roomId })
     socket.on('message_ack', async ({ messageId, roomId }) => {
       try {
         const message = await Message.findById(messageId);
@@ -231,112 +207,101 @@ const socketHandler = (io) => {
       }
     });
 
-    // ── react_message ─────────────────────────────────────────────────────────
-    socket.on('react_message', async ({ messageId, roomId, emoji }) => {
+    // ── message_reaction ──────────────────────────────────────────────────────
+    socket.on('message_reaction', async ({ messageId, emoji, userId: reactionUserId, roomId }) => {
       try {
         const message = await Message.findById(messageId);
         if (!message) return;
 
-        const existingReactionIndex = message.reactions.findIndex(
-          (r) => r.userId.toString() === userId
+        const uId = reactionUserId || userId;
+
+        const existingIndex = message.reactions.findIndex(
+          (r) => r.userId.toString() === uId && r.emoji === emoji
         );
 
-        if (existingReactionIndex > -1) {
-          if (message.reactions[existingReactionIndex].emoji === emoji) {
-            // Clicked same emoji -> remove it
-            message.reactions.splice(existingReactionIndex, 1);
-          } else {
-            // Clicked different emoji -> update it
-            message.reactions[existingReactionIndex].emoji = emoji;
-          }
+        if (existingIndex > -1) {
+          message.reactions.splice(existingIndex, 1);
         } else {
-          // Add new reaction
-          message.reactions.push({ userId, emoji });
+          message.reactions.push({
+            userId: uId,
+            emoji,
+            createdAt: new Date()
+          });
         }
 
         await message.save();
 
-        io.to(roomId).emit('message_reacted', {
+        io.to(roomId).emit('reaction_update', {
           messageId,
           reactions: message.reactions,
         });
       } catch (err) {
-        console.error('React message error:', err);
+        console.error('Message reaction error:', err);
       }
     });
 
     // ── disconnect ────────────────────────────────────────────────────────────
     socket.on('disconnect', async () => {
       console.log(`❌ User disconnected: ${socket.user.name}`);
-      removeSocketForUser(userId, socket.id);
+      onlineUsers.delete(userId);
       socket.leave(userId);
 
-      if (getUserSocketIds(userId).length === 0) {
-        const lastSeen = new Date();
-        await User.findByIdAndUpdate(userId, { status: 'offline', lastSeen });
-        io.emit('user_disconnected', userId);
-      }
+      const lastSeen = new Date();
+      await User.findByIdAndUpdate(userId, { status: 'offline', lastSeen });
+      socket.broadcast.emit('user_offline', { userId, lastSeen });
     });
-    // ── WebRTC call events ────────────────────────────────────────────────
+
+    // ── WebRTC call events ────────────────────────────────────────────────────
     socket.on('call:initiate', ({ receiverId, callType, offer }) => {
-      const receiverSocketIds = userSockets.get(receiverId);
-      if (!receiverSocketIds || receiverSocketIds.size === 0) {
+      const receiverSocketId = onlineUsers.get(receiverId);
+      if (!receiverSocketId) {
         socket.emit('call:unavailable', { message: 'User is not online' });
         return;
       }
       
-      receiverSocketIds.forEach((socketId) => {
-        io.to(socketId).emit('call:incoming', {
-          callerId: userId,
-          callerName: socket.user.name,
-          callerAvatar: socket.user.avatar || null,
-          callType,
-          offer
-        });
+      io.to(receiverSocketId).emit('call:incoming', {
+        callerId: userId,
+        callerName: socket.user.name,
+        callerAvatar: socket.user.avatar || null,
+        callType,
+        offer
       });
     });
 
     socket.on('call:accept', ({ callerId, answer }) => {
-      const callerSocketIds = userSockets.get(callerId);
-      if (callerSocketIds && callerSocketIds.size > 0) {
-        callerSocketIds.forEach((socketId) => {
-          io.to(socketId).emit('call:accepted', { answer });
-        });
+      const callerSocketId = onlineUsers.get(callerId);
+      if (callerSocketId) {
+        io.to(callerSocketId).emit('call:accepted', { answer });
       }
     });
 
     socket.on('call:reject', ({ callerId }) => {
-      const callerSocketIds = userSockets.get(callerId);
-      if (callerSocketIds && callerSocketIds.size > 0) {
-        callerSocketIds.forEach((socketId) => {
-          io.to(socketId).emit('call:rejected', { rejectedBy: socket.user.name });
-        });
+      const callerSocketId = onlineUsers.get(callerId);
+      if (callerSocketId) {
+        io.to(callerSocketId).emit('call:rejected', { rejectedBy: socket.user.name });
       }
     });
 
     socket.on('call:ice-candidate', ({ targetId, candidate }) => {
-      const targetSocketIds = userSockets.get(targetId);
-      if (targetSocketIds && targetSocketIds.size > 0) {
-        targetSocketIds.forEach((socketId) => {
-          io.to(socketId).emit('call:ice-candidate', {
-            candidate,
-            fromId: userId
-          });
+      const targetSocketId = onlineUsers.get(targetId);
+      if (targetSocketId) {
+        io.to(targetSocketId).emit('call:ice-candidate', {
+          candidate,
+          fromId: userId
         });
       }
     });
 
     socket.on('call:end', ({ targetId }) => {
-      const targetSocketIds = userSockets.get(targetId);
-      if (targetSocketIds && targetSocketIds.size > 0) {
-        targetSocketIds.forEach((socketId) => {
-          io.to(socketId).emit('call:ended', { endedBy: socket.user.name });
-        });
+      const targetSocketId = onlineUsers.get(targetId);
+      if (targetSocketId) {
+        io.to(targetSocketId).emit('call:ended', { endedBy: socket.user.name });
       }
     });
+
+    // ── request_pending ───────────────────────────────────────────────────────
     socket.on('request_pending', async () => {
       try {
-        // Efficient pending sync: fetch PendingDelivery entries for this user
         const pendings = await PendingDelivery.find({ recipientId: userId }).select('messageId -_id');
         const messageIds = pendings.map((p) => p.messageId).filter(Boolean);
         if (messageIds.length === 0) return;
@@ -354,13 +319,13 @@ const socketHandler = (io) => {
           socket.emit('pending_messages', { messages: pendingMessages });
         }
 
-        // Remove pending entries that were sent to this socket
         await PendingDelivery.deleteMany({ recipientId: userId, messageId: { $in: messageIds } });
       } catch (err) {
         console.error('Pending message sync error:', err);
       }
     });
 
+    // ── sync_room ─────────────────────────────────────────────────────────────
     socket.on('sync_room', async ({ roomId, after }) => {
       try {
         const room = await Room.findOne({ _id: roomId, members: userId });
@@ -386,6 +351,7 @@ const socketHandler = (io) => {
       }
     });
 
+    // ── heartbeat ─────────────────────────────────────────────────────────────
     socket.on('heartbeat', () => {
       socket.emit('heartbeat_ack', { timestamp: Date.now() });
     });

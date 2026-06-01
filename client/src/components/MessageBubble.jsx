@@ -42,8 +42,32 @@ export default function MessageBubble({ message, prevMessage, onReply }) {
     setShowMenu(false);
   };
 
+  const longPressTimer = useRef(null);
+
+  const handleTouchStart = () => {
+    longPressTimer.current = setTimeout(() => {
+      setShowMenu(true);
+    }, 500);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+    }
+  };
+
+  const handleContextMenu = (e) => {
+    e.preventDefault();
+    setShowMenu(true);
+  };
+
   const handleReact = (emoji) => {
-    emit('react_message', { messageId: message._id, roomId: message.roomId, emoji });
+    emit('message_reaction', { 
+      messageId: message._id, 
+      emoji, 
+      userId: user?._id, 
+      roomId: message.roomId 
+    });
     setShowMenu(false);
   };
 
@@ -136,8 +160,12 @@ export default function MessageBubble({ message, prevMessage, onReply }) {
 
           <div
             onDoubleClick={onReply}
+            onContextMenu={handleContextMenu}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            onTouchMove={handleTouchEnd}
             className={`
-              relative shadow-google text-sm leading-relaxed overflow-hidden
+              relative shadow-google text-sm leading-relaxed overflow-hidden select-none
             ${message.type === 'image' ? 'p-1' : 'px-4 py-2'}
             ${isMine
               ? 'bg-sent-bubble text-on-surface rounded-bubble rounded-br-sm'
@@ -200,15 +228,36 @@ export default function MessageBubble({ message, prevMessage, onReply }) {
 
         {/* Reactions Display */}
         {message.reactions && message.reactions.length > 0 && (
-          <div className={`absolute -bottom-3 ${isMine ? 'right-2' : 'left-2'} 
-                           bg-surface border border-border-color rounded-full px-1.5 py-0.5 
-                           shadow-sm text-xs flex items-center gap-1 z-20 cursor-default animate-pop-in`}>
-             {Array.from(new Set(message.reactions.map(r => r.emoji))).map(emoji => (
-                <span key={emoji}>{emoji}</span>
-             ))}
-             {message.reactions.length > 1 && (
-               <span className="text-[10px] text-subtle-text font-semibold ml-0.5">{message.reactions.length}</span>
-             )}
+          <div className={`absolute -bottom-3.5 ${isMine ? 'right-2' : 'left-2'} 
+                           flex flex-wrap gap-1 z-20`}>
+             {Object.entries(
+               message.reactions.reduce((acc, r) => {
+                 if (!acc[r.emoji]) acc[r.emoji] = [];
+                 acc[r.emoji].push(r);
+                 return acc;
+               }, {})
+             ).map(([emoji, list]) => {
+               const hasMyReaction = list.some(
+                 (r) => r.userId?._id === user?._id || r.userId === user?._id
+               );
+               return (
+                 <button
+                   key={emoji}
+                   onClick={(e) => {
+                     e.stopPropagation();
+                     handleReact(emoji);
+                   }}
+                   className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-xs 
+                               transition-all duration-200 transform scale-100 active:scale-90 animate-pop-in
+                               ${hasMyReaction 
+                                 ? 'bg-primary-light border-primary/30 text-primary font-medium' 
+                                 : 'bg-surface border-border-color text-subtle-text hover:bg-hover-bg'}`}
+                 >
+                   <span>{emoji}</span>
+                   <span className="text-[10px] font-semibold">{list.length}</span>
+                 </button>
+               );
+             })}
           </div>
         )}
         </div>
