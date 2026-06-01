@@ -195,6 +195,14 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
           .forEach((msg) => {
             emit('message_ack', { messageId: msg._id, roomId: room._id });
           });
+
+        const unreadIds = roomMessages
+          .filter((m) => (m.senderId?._id ?? m.senderId) !== user?._id && m.status !== 'read')
+          .map((m) => m._id);
+
+        if (unreadIds.length > 0) {
+          emit('message_read', { messageId: unreadIds, roomId: room._id });
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -222,6 +230,7 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
 
         if ((msg.senderId?._id ?? msg.senderId) !== user?._id) {
           emit('message_ack', { messageId: msg._id, roomId: room._id });
+          emit('message_read', { messageId: msg._id, roomId: room._id });
           // Send notification for incoming message
           const senderName = msg.senderId?.name ?? 'Unknown';
           if (!mutedRooms.includes(room._id)) {
@@ -259,6 +268,10 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
         const missing = roomMessages.filter((msg) => !prev.some((m) => m._id === msg._id));
         return [...prev, ...missing].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
       });
+      const unreadIds = roomMessages
+        .filter((m) => (m.senderId?._id ?? m.senderId) !== user?._id && m.status !== 'read')
+        .map((m) => m._id);
+
       roomMessages.forEach((msg) => {
         emit('message_ack', { messageId: msg._id, roomId: room._id });
         // Send notification for pending messages
@@ -267,6 +280,10 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
           sendNotification(senderName, msg.content);
         }
       });
+
+      if (unreadIds.length > 0) {
+        emit('message_read', { messageId: unreadIds, roomId: room._id });
+      }
     });
 
     on('room_sync', instanceId, ({ roomId, messages: missed }) => {
@@ -275,6 +292,10 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
         const missing = missed.filter((msg) => !prev.some((m) => m._id === msg._id));
         return [...prev, ...missing].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
       });
+      const unreadIds = missed
+        .filter((m) => (m.senderId?._id ?? m.senderId) !== user?._id && m.status !== 'read')
+        .map((m) => m._id);
+
       missed.forEach((msg) => {
         emit('message_ack', { messageId: msg._id, roomId: room._id });
         // Send notification for synced messages
@@ -283,6 +304,10 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
           sendNotification(senderName, msg.content);
         }
       });
+
+      if (unreadIds.length > 0) {
+        emit('message_read', { messageId: unreadIds, roomId: room._id });
+      }
     });
 
     on('typing_start', instanceId, (data) => {
