@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback, useId } from 'react';
-import { ArrowLeft, Phone, Video, MoreVertical, X, Edit2, Check, Camera, Trash2 } from 'lucide-react';
+import { ArrowLeft, Phone, Video, MoreVertical, X, Edit2, Check, Camera, Trash2, VolumeX, User } from 'lucide-react';
 import { messagesAPI, roomsAPI } from '../lib/api';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
@@ -48,7 +48,7 @@ function groupByDate(messages) {
   return groups;
 }
 
-export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom }) {
+export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, mutedRooms = [], onToggleMuteRoom }) {
   const { user } = useAuth();
   const { on, off, emit, isUserOnline, isConnected, getUserLastSeen } = useSocket();
   const { sendNotification } = useNotification();
@@ -89,13 +89,24 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom })
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef(null);
 
+  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
+
   useEffect(() => {
     setShowInfoModal(false);
     setEditMode(false);
     setTempName('');
     setModalMenuOpen(false);
     setSaving(false);
+    setHeaderMenuOpen(false);
   }, [room?._id]);
+
+  // Close header menu on click outside
+  useEffect(() => {
+    if (!headerMenuOpen) return;
+    const handleOutsideClick = () => setHeaderMenuOpen(false);
+    document.addEventListener('click', handleOutsideClick);
+    return () => document.removeEventListener('click', handleOutsideClick);
+  }, [headerMenuOpen]);
 
   useEffect(() => {
     if (showInfoModal) {
@@ -213,7 +224,9 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom })
           emit('message_ack', { messageId: msg._id, roomId: room._id });
           // Send notification for incoming message
           const senderName = msg.senderId?.name ?? 'Unknown';
-          sendNotification(senderName, msg.content);
+          if (!mutedRooms.includes(room._id)) {
+            sendNotification(senderName, msg.content);
+          }
         }
       }
     });
@@ -250,7 +263,9 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom })
         emit('message_ack', { messageId: msg._id, roomId: room._id });
         // Send notification for pending messages
         const senderName = msg.senderId?.name ?? 'Unknown';
-        sendNotification(senderName, msg.content);
+        if (!mutedRooms.includes(room._id)) {
+          sendNotification(senderName, msg.content);
+        }
       });
     });
 
@@ -264,7 +279,9 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom })
         emit('message_ack', { messageId: msg._id, roomId: room._id });
         // Send notification for synced messages
         const senderName = msg.senderId?.name ?? 'Unknown';
-        sendNotification(senderName, msg.content);
+        if (!mutedRooms.includes(room._id)) {
+          sendNotification(senderName, msg.content);
+        }
       });
     });
 
@@ -390,9 +407,22 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom })
               </button>
               {modalMenuOpen && (
                 <div
-                  className="absolute right-0 mt-1 py-1 w-36 bg-surface border border-border-color 
+                  className="absolute right-0 mt-1 py-1 w-40 bg-surface border border-border-color 
                              rounded-card shadow-google-md z-[1010] text-xs text-on-surface animate-pop-in"
                 >
+                  <button
+                    onClick={() => {
+                      setModalMenuOpen(false);
+                      if (onToggleMuteRoom) {
+                        onToggleMuteRoom(room._id);
+                      }
+                    }}
+                    className="w-full text-left px-3 py-2.5 hover:bg-hover-bg text-on-surface 
+                               flex items-center gap-2 transition-colors duration-150"
+                  >
+                    <VolumeX size={14} className="text-subtle-text" />
+                    <span className="font-medium">{mutedRooms.includes(room._id) ? 'Unmute' : 'Mute'}</span>
+                  </button>
                   <button
                     onClick={() => {
                       setModalMenuOpen(false);
@@ -402,7 +432,7 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom })
                       }
                     }}
                     className="w-full text-left px-3 py-2.5 hover:bg-hover-bg text-error 
-                               flex items-center gap-2 transition-colors duration-150"
+                               flex items-center gap-2 transition-colors duration-150 border-t border-border-color"
                   >
                     <Trash2 size={14} />
                     <span className="font-medium">Delete Chat</span>
@@ -476,6 +506,7 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom })
                   <h2 className="text-lg font-semibold text-on-surface font-google truncate max-w-[280px]">
                     {roomName}
                   </h2>
+                  {mutedRooms.includes(room._id) && <VolumeX size={16} className="text-subtle-text" />}
                   <button
                     onClick={() => setEditMode(true)}
                     className="p-1 rounded-full hover:bg-hover-bg text-subtle-text hover:text-on-surface transition-colors"
@@ -575,8 +606,9 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom })
           <Avatar name={roomName} src={room.avatar || ''} size={40} online={peerOnline} />
 
           <div className="flex-1 min-w-0">
-            <h2 className="text-sm font-semibold text-on-surface truncate leading-tight">
+            <h2 className="text-sm font-semibold text-on-surface truncate leading-tight flex items-center gap-1.5">
               {roomName}
+              {mutedRooms.includes(room._id) && <VolumeX size={13} className="text-subtle-text shrink-0" />}
             </h2>
             <p className="text-xs text-subtle-text leading-tight">
               {peerTyping ? (
@@ -598,9 +630,50 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom })
           <button id="btn-video" className="btn-icon" aria-label="Video call" title="Video call" onClick={() => peer && startCall(peer, 'video')}>
             <Video size={20} />
           </button>
-          <button id="btn-more" className="btn-icon" aria-label="More options">
-            <MoreVertical size={20} />
-          </button>
+          <div className="relative leading-none">
+            <button 
+              id="btn-more" 
+              className="btn-icon" 
+              aria-label="More options"
+              onClick={(e) => {
+                e.stopPropagation();
+                setHeaderMenuOpen(!headerMenuOpen);
+              }}
+            >
+              <MoreVertical size={20} />
+            </button>
+            {headerMenuOpen && (
+              <div
+                className="absolute right-0 mt-1 py-1 w-44 bg-surface border border-border-color 
+                           rounded-card shadow-google-md z-50 text-xs text-on-surface animate-pop-in"
+              >
+                <button
+                  onClick={() => {
+                    setHeaderMenuOpen(false);
+                    setShowInfoModal(true);
+                  }}
+                  className="w-full text-left px-3 py-2.5 hover:bg-hover-bg text-on-surface 
+                             flex items-center gap-2 transition-colors duration-150 font-medium"
+                >
+                  <User size={14} className="text-subtle-text" />
+                  <span>{room?.type === 'group' ? 'Group info' : 'Contact info'}</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setHeaderMenuOpen(false);
+                    if (onToggleMuteRoom) {
+                      onToggleMuteRoom(room._id);
+                    }
+                  }}
+                  className="w-full text-left px-3 py-2.5 hover:bg-hover-bg text-on-surface 
+                             flex items-center gap-2 transition-colors duration-150 font-medium"
+                >
+                  <VolumeX size={14} className="text-subtle-text" />
+                  <span>{mutedRooms.includes(room._id) ? 'Unmute notifications' : 'Mute notifications'}</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

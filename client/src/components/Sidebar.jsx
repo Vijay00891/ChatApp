@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useId, useMemo } from 'react';
-import { Search, X, Plus, MessageSquare, LogOut, Wifi, WifiOff, MoreVertical, Pin, Trash2 } from 'lucide-react';
+import { Search, X, Plus, MessageSquare, LogOut, Wifi, WifiOff, MoreVertical, Pin, Trash2, VolumeX } from 'lucide-react';
 import { roomsAPI, usersAPI } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
@@ -16,7 +16,7 @@ function formatRelativeTime(dateStr) {
   return new Date(dateStr).toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
-function RoomItem({ room, currentUserId, isSelected, onClick, isOnline, onPin, onDelete, isPinned }) {
+function RoomItem({ room, currentUserId, isSelected, onClick, isOnline, onPin, onDelete, isPinned, isMuted }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const peer =
     room.type === 'dm'
@@ -48,6 +48,7 @@ function RoomItem({ room, currentUserId, isSelected, onClick, isOnline, onPin, o
           <span className="text-sm font-medium text-on-surface truncate flex items-center gap-1.5">
             {name}
             {isPinned && <Pin size={12} className="text-primary fill-primary rotate-45 shrink-0" />}
+            {isMuted && <VolumeX size={12} className="text-subtle-text shrink-0" />}
           </span>
           {lastMsg && (
             <span className="text-[10px] text-subtle-text shrink-0">
@@ -138,7 +139,7 @@ function UserSearchResult({ user, onStartChat }) {
   );
 }
 
-export default function Sidebar({ selectedRoom, onSelectRoom, deletedRooms = {}, pinnedRooms = [], onPinRoom, onDeleteRoom }) {
+export default function Sidebar({ selectedRoom, onSelectRoom, deletedRooms = {}, pinnedRooms = [], onPinRoom, onDeleteRoom, mutedRooms = [], onToggleMuteRoom }) {
   const { user, logout } = useAuth();
   const { isConnected, isUserOnline, on, off } = useSocket();
   const [rooms, setRooms] = useState([]);
@@ -457,6 +458,7 @@ export default function Sidebar({ selectedRoom, onSelectRoom, deletedRooms = {},
                   onPin={onPinRoom}
                   onDelete={onDeleteRoom}
                   isPinned={pinnedRooms.includes(room._id)}
+                  isMuted={mutedRooms.includes(room._id)}
                 />
               );
             })}

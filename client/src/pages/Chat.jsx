@@ -31,8 +31,9 @@ export default function Chat() {
 
   const [deletedRooms, setDeletedRooms] = useState({});
   const [pinnedRooms, setPinnedRooms] = useState([]);
+  const [mutedRooms, setMutedRooms] = useState([]);
 
-  // Load deleted and pinned rooms from localStorage when user changes
+  // Load deleted, pinned, and muted rooms from localStorage when user changes
   useEffect(() => {
     if (!user?._id) return;
     try {
@@ -44,6 +45,11 @@ export default function Chat() {
       setPinnedRooms(JSON.parse(localStorage.getItem(`pinned_rooms_${user._id}`) || '[]'));
     } catch {
       setPinnedRooms([]);
+    }
+    try {
+      setMutedRooms(JSON.parse(localStorage.getItem(`muted_rooms_${user._id}`) || '[]'));
+    } catch {
+      setMutedRooms([]);
     }
   }, [user?._id]);
 
@@ -73,6 +79,18 @@ export default function Chat() {
     }
   }, [deletedRooms, user?._id, selectedRoom?._id]);
 
+  const handleToggleMuteRoom = useCallback((roomId) => {
+    if (!user?._id) return;
+    let updated;
+    if (mutedRooms.includes(roomId)) {
+      updated = mutedRooms.filter((id) => id !== roomId);
+    } else {
+      updated = [...mutedRooms, roomId];
+    }
+    localStorage.setItem(`muted_rooms_${user._id}`, JSON.stringify(updated));
+    setMutedRooms(updated);
+  }, [mutedRooms, user?._id]);
+
   const handleSelectRoom = (room) => {
     setSelectedRoom(room);
     setMobileView('chat');
@@ -98,8 +116,10 @@ export default function Chat() {
           onSelectRoom={handleSelectRoom} 
           deletedRooms={deletedRooms}
           pinnedRooms={pinnedRooms}
+          mutedRooms={mutedRooms}
           onPinRoom={handlePinRoom}
           onDeleteRoom={handleDeleteRoom}
+          onToggleMuteRoom={handleToggleMuteRoom}
         />
       </div>
 
@@ -119,6 +139,8 @@ export default function Chat() {
             onBack={handleBack} 
             onDeleteRoom={handleDeleteRoom}
             onUpdateRoom={(updatedRoom) => setSelectedRoom(updatedRoom)}
+            mutedRooms={mutedRooms}
+            onToggleMuteRoom={handleToggleMuteRoom}
           />
         ) : (
           <EmptyState />
