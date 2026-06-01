@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useId } from 'react';
+import { useState, useEffect, useCallback, useId, useMemo } from 'react';
 import { Search, X, Plus, MessageSquare, LogOut, Wifi, WifiOff, MoreVertical, Pin, Trash2 } from 'lucide-react';
 import { roomsAPI, usersAPI } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
@@ -150,6 +150,64 @@ export default function Sidebar({ selectedRoom, onSelectRoom }) {
 
   const [deletedRooms, setDeletedRooms] = useState({});
   const [pinnedRooms, setPinnedRooms] = useState([]);
+  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [groupName, setGroupName] = useState('');
+  const [selectedMembers, setSelectedMembers] = useState([]);
+
+  // Close header menu on click outside
+  useEffect(() => {
+    if (!headerMenuOpen) return;
+    const handleOutsideClick = () => setHeaderMenuOpen(false);
+    document.addEventListener('click', handleOutsideClick);
+    return () => document.removeEventListener('click', handleOutsideClick);
+  }, [headerMenuOpen]);
+
+  // Reset group modal states when closed
+  useEffect(() => {
+    if (!showGroupModal) {
+      setGroupName('');
+      setSelectedMembers([]);
+    }
+  }, [showGroupModal]);
+
+  // Extract unique friends currently listed in user's sidebar
+  const uniqueFriends = useMemo(() => {
+    if (!user?._id) return [];
+    const chatFriends = rooms
+      .filter((room) => room.type === 'dm')
+      .map((room) => room.members?.find((m) => (m._id ?? m) !== user._id))
+      .filter(Boolean);
+    
+    const map = new Map();
+    chatFriends.forEach((friend) => {
+      const id = friend._id || friend;
+      if (typeof friend === 'object') {
+        map.set(id.toString(), friend);
+      } else {
+        const resolvedFriend = rooms
+          .flatMap((r) => r.members || [])
+          .find((m) => m._id?.toString() === id.toString());
+        if (resolvedFriend) {
+          map.set(id.toString(), resolvedFriend);
+        }
+      }
+    });
+    return Array.from(map.values());
+  }, [rooms, user?._id]);
+
+  const handleCreateGroup = useCallback(async () => {
+    if (!groupName.trim() || selectedMembers.length === 0) return;
+    try {
+      const res = await roomsAPI.createGroup(groupName.trim(), selectedMembers);
+      const newRoom = res.data.room;
+      setRooms((prev) => [newRoom, ...prev]);
+      onSelectRoom(newRoom);
+      setShowGroupModal(false);
+    } catch (err) {
+      console.error('Failed to create group:', err);
+    }
+  }, [groupName, selectedMembers, onSelectRoom]);
 
   // Load deleted and pinned rooms from localStorage when user changes
   useEffect(() => {
@@ -291,6 +349,52 @@ export default function Sidebar({ selectedRoom, onSelectRoom }) {
             className="shrink-0"
           />
           <span className="text-base font-semibold text-on-surface font-google">Messages</span>
+
+          {/* Header Menu Dropdown (Left side) */}
+          <div className="relative leading-none">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setHeaderMenuOpen(!headerMenuOpen);
+              }}
+              className="p-1 rounded-full hover:bg-hover-bg text-subtle-text hover:text-on-surface transition-all duration-150"
+              title="Menu"
+              aria-label="Menu"
+            >
+              <MoreVertical size={16} />
+            </button>
+
+            {headerMenuOpen && (
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="absolute left-0 mt-1 py-1 w-32 bg-surface border border-border-color 
+                           rounded-card shadow-google-md z-50 text-xs text-on-surface animate-pop-in"
+              >
+                <button
+                  onClick={() => {
+                    setHeaderMenuOpen(false);
+                    setShowGroupModal(true);
+                  }}
+                  className="w-full text-left px-3 py-2 hover:bg-hover-bg text-on-surface 
+                             flex items-center gap-2 transition-colors duration-150"
+                >
+                  <span>👥</span> New Group
+                </button>
+                <button
+                  onClick={() => {
+                    setHeaderMenuOpen(false);
+                    logout();
+                  }}
+                  className="w-full text-left px-3 py-2 hover:bg-hover-bg text-error 
+                             flex items-center gap-2 transition-colors duration-150 border-t border-border-color"
+                >
+                  <LogOut size={13} />
+                  <span>Sign out</span>
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* Connection indicator */}
           <div className="ml-auto">
             {isConnected ? (
@@ -300,16 +404,6 @@ export default function Sidebar({ selectedRoom, onSelectRoom }) {
             )}
           </div>
         </div>
-
-        <button
-          id="btn-logout"
-          onClick={logout}
-          className="btn-icon"
-          aria-label="Sign out"
-          title="Sign out"
-        >
-          <LogOut size={18} />
-        </button>
       </div>
 
 
@@ -397,6 +491,94 @@ export default function Sidebar({ selectedRoom, onSelectRoom }) {
           </>
         )}
       </div>
+
+      {/* Create Group Modal */}
+      {showGroupModal && (
+        <div
+          className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setShowGroupModal(false)}
+        >
+          <div
+            className="bg-surface border border-border-color rounded-xl shadow-google-lg w-full max-w-sm overflow-hidden animate-pop-in text-on-surface"
+            onClick={(e) => e.stopPropagation()}
+            style={{ display: 'flex', flexDirection: 'column', maxHeight: '80vh' }}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border-color">
+              <h3 className="text-sm font-semibold font-google">Create New Group</h3>
+              <button
+                onClick={() => setShowGroupModal(false)}
+                className="p-1 rounded-full hover:bg-hover-bg text-subtle-text"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-4 flex-1 overflow-y-auto" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label className="text-xs font-semibold text-subtle-text block mb-1">Group Name</label>
+                <input
+                  type="text"
+                  value={groupName}
+                  onChange={(e) => setGroupName(e.target.value)}
+                  placeholder="Enter group name…"
+                  className="input-field py-2"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-subtle-text block mb-1.5">Select Members</label>
+                {uniqueFriends.length === 0 ? (
+                  <p className="text-xs text-subtle-text text-center py-4">No chat listed friends found.</p>
+                ) : (
+                  <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-1">
+                    {uniqueFriends.map((friend) => {
+                      const isSelected = selectedMembers.includes(friend._id);
+                      return (
+                        <label
+                          key={friend._id}
+                          className="flex items-center gap-3 p-2 rounded-lg hover:bg-hover-bg cursor-pointer transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {
+                              setSelectedMembers((prev) =>
+                                isSelected ? prev.filter((id) => id !== friend._id) : [...prev, friend._id]
+                              );
+                            }}
+                            className="rounded border-border-color text-primary focus:ring-primary/20 w-4 h-4"
+                          />
+                          <Avatar name={friend.name} src={friend.avatar || ''} size={28} />
+                          <span className="text-xs font-medium truncate">{friend.name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-4 py-3 bg-background border-t border-border-color flex justify-end gap-2">
+              <button
+                onClick={() => setShowGroupModal(false)}
+                className="btn-ghost py-1.5 px-4 text-xs"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateGroup}
+                disabled={!groupName.trim() || selectedMembers.length === 0}
+                className="btn-primary py-1.5 px-4 text-xs font-medium"
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
