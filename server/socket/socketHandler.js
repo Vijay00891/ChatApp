@@ -74,12 +74,12 @@ const socketHandler = (io) => {
     // Frontend emits: emit('send_message', { roomId, content, type, replyTo })
     socket.on('send_message', async (data) => {
       try {
-        const { roomId, content, type = 'text', replyTo = null } = data;
+        const { tempId, roomId, content, type = 'text', replyTo = null, iv = null, encrypted = false, createdAt = null } = data;
 
         const room = await Room.findOne({ _id: roomId, members: userId });
         if (!room) return socket.emit('error', { message: 'Room not found.' });
 
-        const message = await Message.create({
+        const messageData = {
           roomId,
           senderId: userId,
           content,
@@ -87,7 +87,16 @@ const socketHandler = (io) => {
           replyTo,
           status: 'sent',
           deliveredTo: [],
-        });
+          iv,
+          encrypted,
+        };
+
+        // If message was created offline, preserve its original timestamp
+        if (createdAt) {
+          messageData.createdAt = new Date(createdAt);
+        }
+
+        const message = await Message.create(messageData);
 
         const populated = await Message.findById(message._id)
           .populate('senderId', 'name avatar avatarColor')
@@ -100,7 +109,7 @@ const socketHandler = (io) => {
         // Update room's last message
         await Room.findByIdAndUpdate(roomId, {
           lastMessage: message._id,
-          updatedAt: new Date(),
+          updatedAt: createdAt ? new Date(createdAt) : new Date(),
         });
 
         const recipientIds = room.members
@@ -130,8 +139,15 @@ const socketHandler = (io) => {
           }
         });
 
-        // Notify sender with the saved message object so optimistic UI can reconcile
-        socket.emit('new_message', populated);
+        // Notify sender: replace optimistic message with real message
+        if (tempId) {
+          socket.emit('message_confirmed', {
+            tempId,
+            realMessage: populated,
+          });
+        } else {
+          socket.emit('new_message', populated);
+        }
 
         // For offline recipients, create pending delivery entries so reconnect sync is efficient
         const offlineRecipientIds = recipientIds.filter((recipientId) => !onlineUsers.has(recipientId));

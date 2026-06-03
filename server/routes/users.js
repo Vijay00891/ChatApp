@@ -56,4 +56,47 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 });
 
+// GET /api/users/contacts
+router.get('/contacts', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).populate(
+      'contacts',
+      'name email avatar avatarColor status lastSeen'
+    );
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+    res.json({ users: user.contacts || [] });
+  } catch (error) {
+    console.error('Get contacts error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+});
+
+// POST /api/users/contacts/:userId
+router.post('/contacts/:userId', authMiddleware, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    if (userId === req.user._id.toString()) {
+      return res.status(400).json({ message: 'Cannot add yourself as contact' });
+    }
+
+    const targetUser = await User.findById(userId);
+    if (!targetUser) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { $addToSet: { contacts: userId } },
+      { new: true }
+    ).populate('contacts', 'name email avatar avatarColor status lastSeen');
+
+    res.json({ users: user.contacts || [] });
+  } catch (error) {
+    console.error('Add contact error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+});
+
 module.exports = router;

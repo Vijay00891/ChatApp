@@ -24,6 +24,14 @@ const messageSchema = new mongoose.Schema(
       enum: ['text', 'image', 'file', 'video'],
       default: 'text',
     },
+    iv: {
+      type: String,
+      default: null,
+    },
+    encrypted: {
+      type: Boolean,
+      default: false,
+    },
     mediaStatus: {
       type: String,
       enum: ['uploaded', 'processing', 'completed', 'failed'],

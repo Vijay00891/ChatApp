@@ -31,6 +31,42 @@ const upload = multer({
 
 const router = express.Router();
 
+// GET /api/messages/sync?since=timestamp
+router.get('/sync', authMiddleware, async (req, res) => {
+  try {
+    const since = parseInt(req.query.since);
+    if (isNaN(since)) {
+      return res.status(400).json({ message: 'Valid "since" timestamp parameter is required.' });
+    }
+
+    // Find all rooms the user is a member of
+    const userRooms = await Room.find({ members: req.user._id }).select('_id');
+    const roomIds = userRooms.map((r) => r._id);
+
+    // Find all messages in those rooms since the given timestamp
+    const messages = await Message.find({
+      roomId: { $in: roomIds },
+      createdAt: { $gt: new Date(since) },
+    })
+      .populate('senderId', 'name avatar avatarColor')
+      .populate({
+        path: 'replyTo',
+        select: 'content type senderId',
+        populate: { path: 'senderId', select: 'name' }
+      })
+      .sort({ createdAt: 1 })
+      .limit(500);
+
+    res.json({
+      messages,
+      syncedAt: Date.now(),
+    });
+  } catch (error) {
+    console.error('Sync messages error:', error);
+    res.status(500).json({ message: 'Server error during sync.' });
+  }
+});
+
 // GET /api/messages/:roomId?page=1&limit=50
 router.get('/:roomId', authMiddleware, async (req, res) => {
   try {
