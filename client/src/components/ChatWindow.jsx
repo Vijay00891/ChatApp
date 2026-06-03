@@ -11,15 +11,6 @@ import InputBar from './InputBar';
 import TypingIndicator from './TypingIndicator';
 import CallUI from './CallUI';
 import { formatLastSeen } from '../lib/formatLastSeen';
-import { useOffline } from '../context/OfflineContext';
-import {
-  saveMessage,
-  saveMessages,
-  getMessagesByRoom,
-  replaceOptimisticMessage,
-  updateRoomLastMessage,
-  addToOutbox,
-} from '../utils/db';
 
 function getPeerFromRoom(room, currentUserId) {
   if (!room) return null;
@@ -61,7 +52,6 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
   const { user } = useAuth();
   const { on, off, emit, isUserOnline, isConnected, getUserLastSeen } = useSocket();
   const { sendNotification } = useNotification();
-  const { isOnline, setOutboxCount } = useOffline();
   const {
     callState,
     callType,
@@ -194,56 +184,33 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
 
     emit('join_room', room._id);
 
-    // 1. Immediately load from IndexedDB to make UI instant
-    getMessagesByRoom(room._id)
-      .then((localMessages) => {
-        if (localMessages && localMessages.length > 0) {
-          setMessages(localMessages);
+    messagesAPI
+      .getByRoom(room._id)
+      .then((res) => {
+        const roomMessages = res.data.messages || [];
+        setMessages(roomMessages);
+
+        roomMessages
+          .filter((m) => (m.senderId?._id ?? m.senderId) !== user?._id)
+          .forEach((msg) => {
+            emit('message_ack', { messageId: msg._id, roomId: room._id });
+          });
+
+        const unreadIds = roomMessages
+          .filter((m) => (m.senderId?._id ?? m.senderId) !== user?._id && m.status !== 'read')
+          .map((m) => m._id);
+
+        if (unreadIds.length > 0) {
+          emit('message_read', { messageId: unreadIds, roomId: room._id });
         }
       })
-      .catch((err) => console.error('Failed to load local messages:', err))
-      .finally(() => {
-        // If offline, turn off loading state now since there's no network fetch
-        if (!isOnline) {
-          setLoading(false);
-        }
-      });
-
-    // 2. If online, fetch fresh messages in the background
-    if (isOnline) {
-      messagesAPI
-        .getByRoom(room._id)
-        .then(async (res) => {
-          const roomMessages = res.data.messages || [];
-          
-          // Save server response to IndexedDB
-          await saveMessages(roomMessages);
-          
-          // Update state with fresh messages
-          setMessages(roomMessages);
-
-          roomMessages
-            .filter((m) => (m.senderId?._id ?? m.senderId) !== user?._id)
-            .forEach((msg) => {
-              emit('message_ack', { messageId: msg._id, roomId: room._id });
-            });
-
-          const unreadIds = roomMessages
-            .filter((m) => (m.senderId?._id ?? m.senderId) !== user?._id && m.status !== 'read')
-            .map((m) => m._id);
-
-          if (unreadIds.length > 0) {
-            emit('message_read', { messageId: unreadIds, roomId: room._id });
-          }
-        })
-        .catch((err) => console.error('Failed to fetch messages from server:', err))
-        .finally(() => setLoading(false));
-    }
+      .catch(() => {})
+      .finally(() => setLoading(false));
 
     return () => {
       emit('leave_room', room._id);
     };
-  }, [room?._id, emit, user?._id, isOnline]);
+  }, [room?._id, emit, user?._id]);
 
   // Socket subscriptions
   useEffect(() => {
@@ -397,23 +364,18 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
       );
     });
 
-    on('message_confirmed', instanceId, ({ tempId, realMessage }) => {
-      setMessages((prev) =>
-        prev.map((m) => (m._id === tempId ? realMessage : m))
-      );
-      replaceOptimisticMessage(tempId, realMessage);
-    });
-
     return () => {
+      off('new_message', instanceId);
       off('message_delivered', instanceId);
       off('message_read', instanceId);
+      off('pending_messages', instanceId);
+      off('room_sync', instanceId);
       off('typing_start', instanceId);
       off('typing_stop', instanceId);
       off('reaction_update', instanceId);
       off('room_updated', instanceId);
       off('message_updated', instanceId);
       off('media_processing_update', instanceId);
-      off('message_confirmed', instanceId);
     };
   }, [room?._id, instanceId, on, off, emit, user?._id, sendNotification]);
 
@@ -433,17 +395,16 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
   const pendingCallbacks = useRef({});
 
   const handleSend = useCallback(
-    async (content, type = 'text', options = {}) => {
+    (content, type = 'text', options = {}) => {
       if (!room?._id) return;
-      
-      const tempId = crypto.randomUUID();
-      const timestamp = Date.now();
+      // Add optimistic message for instant UI feedback
+      const tempId = `temp_${Date.now()}`;
+      pendingTempId.current = tempId;
       
       if (options.onMessageCreated) {
         pendingCallbacks.current[tempId] = options.onMessageCreated;
       }
 
-      // 1. Optimistic UI - show message immediately with 'sending' status
       const optimistic = {
         _id: tempId,
         roomId: room._id,
@@ -452,58 +413,14 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
         type,
         mediaStatus: options.mediaStatus || null,
         replyTo: replyingTo,
-        status: 'sending',
-        createdAt: new Date(timestamp).toISOString(),
-        isOptimistic: true,
+        status: 'sent',
+        createdAt: new Date().toISOString(),
       };
-
       setMessages((prev) => [...prev, optimistic]);
-
-      // 2. Save to IndexedDB immediately
-      const dbMessage = {
-        _id: tempId,
-        roomId: room._id,
-        senderId: user._id,
-        content,
-        type,
-        mediaStatus: options.mediaStatus || null,
-        replyTo: replyingTo ? replyingTo._id : null,
-        status: 'sending',
-        createdAt: new Date(timestamp).toISOString(),
-        isOptimistic: true,
-      };
-      await saveMessage(dbMessage);
-
-      // 3. Update room last message in IndexedDB
-      await updateRoomLastMessage(room._id, content, timestamp);
-
+      emit('send_message', { roomId: room._id, content, type, replyTo: replyingTo?._id });
       setReplyingTo(null);
-
-      // 4. Send via socket immediately if online, else add to outbox
-      if (isOnline) {
-        emit('send_message', {
-          tempId,
-          roomId: room._id,
-          senderId: user._id,
-          content,
-          type,
-          replyTo: replyingTo ? replyingTo._id : null,
-          createdAt: timestamp,
-        });
-      } else {
-        await addToOutbox({
-          tempId,
-          roomId: room._id,
-          senderId: user._id,
-          content,
-          type,
-          replyTo: replyingTo ? replyingTo._id : null,
-          createdAt: timestamp,
-        });
-        setOutboxCount((prev) => prev + 1);
-      }
     },
-    [room?._id, user, emit, replyingTo, isOnline, setOutboxCount]
+    [room?._id, user, emit, replyingTo]
   );
 
   const items = groupByDate(messages);

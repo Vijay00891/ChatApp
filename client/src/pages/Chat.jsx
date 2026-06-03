@@ -1,8 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useId } from 'react';
 import { MessageSquare } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import ChatWindow from '../components/ChatWindow';
 import { useAuth } from '../context/AuthContext';
+import { useSocket } from '../context/SocketContext';
+import { useNotification } from '../hooks/useNotification';
 
 function EmptyState() {
   return (
@@ -25,6 +27,9 @@ function EmptyState() {
 
 export default function Chat() {
   const { user } = useAuth();
+  const { on, off } = useSocket();
+  const { sendNotification } = useNotification();
+  const instanceId = useId();
   const [selectedRoom, setSelectedRoom] = useState(null);
   // For mobile, track whether the sidebar or chat is shown
   const [mobileView, setMobileView] = useState('sidebar'); // 'sidebar' | 'chat'
@@ -32,6 +37,27 @@ export default function Chat() {
   const [deletedRooms, setDeletedRooms] = useState({});
   const [pinnedRooms, setPinnedRooms] = useState([]);
   const [mutedRooms, setMutedRooms] = useState([]);
+
+  // Listen for new messages globally to show notifications for background chats
+  useEffect(() => {
+    if (!user?._id) return;
+
+    on('new_message', instanceId, (msg) => {
+      const isMine = msg.senderId?._id === user?._id || msg.senderId === user?._id;
+      if (isMine) return;
+
+      if (msg.roomId !== selectedRoom?._id) {
+        if (!mutedRooms.includes(msg.roomId)) {
+          const senderName = msg.senderId?.name || 'New Message';
+          sendNotification(senderName, msg.content);
+        }
+      }
+    });
+
+    return () => {
+      off('new_message', instanceId);
+    };
+  }, [selectedRoom?._id, mutedRooms, user?._id, on, off, sendNotification, instanceId]);
 
   // Load deleted, pinned, and muted rooms from localStorage when user changes
   useEffect(() => {

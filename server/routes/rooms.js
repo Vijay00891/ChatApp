@@ -5,6 +5,36 @@ const authMiddleware = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
+// Helper to calculate unread counts
+const addUnreadToRooms = async (rooms, userId) => {
+  return await Promise.all(
+    rooms.map(async (room) => {
+      const unread = await Message.countDocuments({
+        roomId: room._id,
+        senderId: { $ne: userId },
+        readBy: { $ne: userId },
+      });
+      return {
+        ...room.toObject(),
+        unread,
+      };
+    })
+  );
+};
+
+const addUnreadToRoom = async (room, userId) => {
+  if (!room) return null;
+  const unread = await Message.countDocuments({
+    roomId: room._id,
+    senderId: { $ne: userId },
+    readBy: { $ne: userId },
+  });
+  return {
+    ...room.toObject(),
+    unread,
+  };
+};
+
 // GET /api/rooms — get all rooms for current user
 router.get('/', authMiddleware, async (req, res) => {
   try {
@@ -16,7 +46,8 @@ router.get('/', authMiddleware, async (req, res) => {
       })
       .sort({ updatedAt: -1 });
 
-    res.json({ rooms });
+    const roomsWithUnread = await addUnreadToRooms(rooms, req.user._id);
+    res.json({ rooms: roomsWithUnread });
   } catch (error) {
     console.error('Get rooms error:', error);
     res.status(500).json({ message: 'Server error.' });
@@ -55,7 +86,8 @@ router.post('/dm', authMiddleware, async (req, res) => {
         });
     }
 
-    res.json({ room });
+    const roomWithUnread = await addUnreadToRoom(room, req.user._id);
+    res.json({ room: roomWithUnread });
   } catch (error) {
     console.error('Create DM error:', error);
     res.status(500).json({ message: 'Server error.' });
@@ -84,7 +116,8 @@ router.post('/group', authMiddleware, async (req, res) => {
       'name email avatar avatarColor status lastSeen'
     );
 
-    res.status(201).json({ room: populated });
+    const roomWithUnread = await addUnreadToRoom(populated, req.user._id);
+    res.status(201).json({ room: roomWithUnread });
   } catch (error) {
     console.error('Create group error:', error);
     res.status(500).json({ message: 'Server error.' });
@@ -117,7 +150,8 @@ router.put('/:id', authMiddleware, async (req, res) => {
       io.to(room._id.toString()).emit('room_updated', { roomId: room._id.toString() });
     }
 
-    res.json({ room: populated });
+    const roomWithUnread = await addUnreadToRoom(populated, req.user._id);
+    res.json({ room: roomWithUnread });
   } catch (error) {
     console.error('Update room error:', error);
     res.status(500).json({ message: 'Server error.' });
@@ -141,7 +175,8 @@ router.get('/:id', authMiddleware, async (req, res) => {
       return res.status(404).json({ message: 'Room not found.' });
     }
 
-    res.json({ room });
+    const roomWithUnread = await addUnreadToRoom(room, req.user._id);
+    res.json({ room: roomWithUnread });
   } catch (error) {
     res.status(500).json({ message: 'Server error.' });
   }
