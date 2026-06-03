@@ -2,7 +2,6 @@ import { useState, useRef, useCallback } from 'react';
 import { Send, Smile, Paperclip, X, Loader2, Image as ImageIcon, FileText } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 import { compressImage } from '../utils/imageCompressor';
-import { useOffline } from '../context/OfflineContext';
 
 const EMOJI_LIST = ['😀','😂','😍','🥺','😎','🤔','👍','❤️','🎉','🔥','✨','😢','🙏','😅','🤣','💯'];
 
@@ -18,7 +17,6 @@ export default function InputBar({ roomId, onSend, disabled, replyingTo, onCance
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
   const { emit } = useSocket();
-  const { isOnline } = useOffline();
 
   const handleTyping = useCallback(() => {
     if (!isTyping) {
@@ -376,13 +374,7 @@ export default function InputBar({ roomId, onSend, disabled, replyingTo, onCance
       <button
         id="btn-attach"
         className="btn-icon shrink-0 mb-0.5"
-        onClick={() => {
-          if (!isOnline) {
-            alert('File sharing is disabled while offline.');
-            return;
-          }
-          fileInputRef.current?.click();
-        }}
+        onClick={() => fileInputRef.current?.click()}
         aria-label="Attach file"
         title="Attach file"
         disabled={disabled || isUploading}

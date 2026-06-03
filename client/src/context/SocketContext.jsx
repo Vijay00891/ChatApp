@@ -83,7 +83,6 @@ export function SocketProvider({ children }) {
     // Forward events to registered listeners
     const forwardedEvents = [
       'new_message',
-      'message_confirmed',
       'message_delivered',
       'message_read',
       'typing_start',

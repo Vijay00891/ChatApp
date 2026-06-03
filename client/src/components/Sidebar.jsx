@@ -4,9 +4,6 @@ import { roomsAPI, usersAPI } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import Avatar from './Avatar';
-import { useOffline } from '../context/OfflineContext';
-import { getAllRooms, saveRooms } from '../utils/db';
-import SyncStatusIcon from './SyncStatusIcon';
 
 function formatRelativeTime(dateStr) {
   if (!dateStr) return '';
@@ -145,7 +142,6 @@ function UserSearchResult({ user, onStartChat }) {
 export default function Sidebar({ selectedRoom, onSelectRoom, deletedRooms = {}, pinnedRooms = [], onPinRoom, onDeleteRoom, mutedRooms = [], onToggleMuteRoom }) {
   const { user, logout } = useAuth();
   const { isConnected, isUserOnline, on, off } = useSocket();
-  const { isOnline } = useOffline();
   const [rooms, setRooms] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -240,46 +236,25 @@ export default function Sidebar({ selectedRoom, onSelectRoom, deletedRooms = {},
     });
 
   // Load conversations
-  const loadRooms = useCallback(async () => {
-    // 1. Immediately load from IndexedDB
-    try {
-      const localRooms = await getAllRooms();
-      if (localRooms && localRooms.length > 0) {
-        setRooms(localRooms);
-      }
-    } catch (err) {
-      console.error('Failed to load local rooms:', err);
-    } finally {
-      if (!isOnline) {
-        setLoadingRooms(false);
-      }
-    }
-
-    // 2. Fetch fresh rooms from server if online
-    if (isOnline) {
-      roomsAPI
-        .getAll()
-        .then(async (res) => {
-          const roomsList = res.data.rooms || [];
-          
-          // Save to IndexedDB
-          await saveRooms(roomsList);
-          
-          setRooms(roomsList);
-          if (selectedRoom) {
-            const updatedSelected = roomsList.find((r) => r._id === selectedRoom._id);
-            if (updatedSelected) {
-              // Check if name or avatar has changed to avoid unnecessary updates
-              if (updatedSelected.name !== selectedRoom.name || updatedSelected.avatar !== selectedRoom.avatar) {
-                onSelectRoom(updatedSelected);
-              }
+  const loadRooms = useCallback(() => {
+    roomsAPI
+      .getAll()
+      .then((res) => {
+        const roomsList = res.data.rooms || [];
+        setRooms(roomsList);
+        if (selectedRoom) {
+          const updatedSelected = roomsList.find((r) => r._id === selectedRoom._id);
+          if (updatedSelected) {
+            // Check if name or avatar has changed to avoid unnecessary updates
+            if (updatedSelected.name !== selectedRoom.name || updatedSelected.avatar !== selectedRoom.avatar) {
+              onSelectRoom(updatedSelected);
             }
           }
-        })
-        .catch(() => {})
-        .finally(() => setLoadingRooms(false));
-    }
-  }, [selectedRoom, onSelectRoom, isOnline]);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingRooms(false));
+  }, [selectedRoom, onSelectRoom]);
 
   useEffect(() => {
     loadRooms();
@@ -395,7 +370,11 @@ export default function Sidebar({ selectedRoom, onSelectRoom, deletedRooms = {},
 
           {/* Connection indicator */}
           <div className="ml-auto">
-            <SyncStatusIcon />
+            {isConnected ? (
+              <Wifi size={14} className="text-success" title="Connected" />
+            ) : (
+              <WifiOff size={14} className="text-error animate-pulse" title="Disconnected" />
+            )}
           </div>
         </div>
       </div>
