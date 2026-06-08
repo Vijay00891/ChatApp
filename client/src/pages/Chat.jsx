@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useId } from 'react';
 import { MessageSquare } from 'lucide-react';
+import toast from 'react-hot-toast';
 import Sidebar from '../components/Sidebar';
 import ChatWindow from '../components/ChatWindow';
 import { useAuth } from '../context/AuthContext';
@@ -50,6 +51,19 @@ export default function Chat() {
         if (!mutedRooms.includes(msg.roomId)) {
           const senderName = msg.senderId?.name || 'New Message';
           sendNotification(senderName, msg.content);
+          
+          // Fallback in-app toast notification if browser permission is not granted
+          toast(`${senderName}: ${msg.content}`, {
+            icon: '💬',
+            style: {
+              borderRadius: '12px',
+              background: 'var(--md-sys-color-surface, #fff)',
+              color: 'var(--md-sys-color-on-surface, #000)',
+              border: '1px solid var(--md-sys-color-border-color, #e0e0e0)',
+              fontFamily: '"DM Sans", "Google Sans", Roboto, sans-serif',
+              fontSize: '14px',
+            },
+          });
         }
       }
     });
