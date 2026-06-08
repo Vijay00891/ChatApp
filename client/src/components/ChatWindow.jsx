@@ -220,9 +220,9 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
       if (msg.roomId === room._id) {
         setMessages((prev) => {
           if (prev.some((m) => m._id === msg._id)) return prev;
-          const tempId = pendingTempId.current;
+          const tempId = msg.tempId || pendingTempId.current;
           if (tempId && prev.some((m) => m._id === tempId)) {
-            pendingTempId.current = null;
+            if (tempId === pendingTempId.current) pendingTempId.current = null;
             // Execute any pending callback for this message
             if (pendingCallbacks.current[tempId]) {
               pendingCallbacks.current[tempId](msg._id);
@@ -417,7 +417,7 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
         createdAt: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, optimistic]);
-      emit('send_message', { roomId: room._id, content, type, replyTo: replyingTo?._id });
+      emit('send_message', { roomId: room._id, content, type, replyTo: replyingTo?._id, tempId });
       setReplyingTo(null);
     },
     [room?._id, user, emit, replyingTo]

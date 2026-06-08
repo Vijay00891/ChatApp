@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const Message = require('../models/Message');
 const Room = require('../models/Room');
 const User = require('../models/User');
@@ -71,37 +72,16 @@ const socketHandler = (io) => {
       socket.leave(id);
     });
 
-    // Frontend emits: emit('send_message', { roomId, content, type, replyTo })
+    // Frontend emits: emit('send_message', { roomId, content, type, replyTo, tempId })
     socket.on('send_message', async (data) => {
       try {
-        const { roomId, content, type = 'text', replyTo = null } = data;
+        const { roomId, content, type = 'text', replyTo = null, tempId = null } = data;
 
-        const room = await Room.findOne({ _id: roomId, members: userId });
+        const room = await Room.findOne({ _id: roomId, members: userId }).lean();
         if (!room) return socket.emit('error', { message: 'Room not found.' });
 
-        const message = await Message.create({
-          roomId,
-          senderId: userId,
-          content,
-          type,
-          replyTo,
-          status: 'sent',
-          deliveredTo: [],
-        });
-
-        const populated = await Message.findById(message._id)
-          .populate('senderId', 'name avatar avatarColor')
-          .populate({
-            path: 'replyTo',
-            select: 'content type senderId',
-            populate: { path: 'senderId', select: 'name' }
-          });
-
-        // Update room's last message
-        await Room.findByIdAndUpdate(roomId, {
-          lastMessage: message._id,
-          updatedAt: new Date(),
-        });
+        const messageId = new mongoose.Types.ObjectId();
+        const createdAt = new Date();
 
         const recipientIds = room.members
           .map((m) => m.toString())
@@ -111,39 +91,71 @@ const socketHandler = (io) => {
           onlineUsers.has(recipientId)
         );
 
-        if (onlineRecipientIds.length > 0) {
-          await Message.findByIdAndUpdate(message._id, {
-            $addToSet: { deliveredTo: { $each: onlineRecipientIds } },
-            $set: { deliveredAt: new Date(), status: 'delivered' },
-          });
-        }
+        // 1. Instantly construct the populated message payload
+        const populated = {
+          _id: messageId,
+          roomId,
+          senderId: {
+            _id: socket.user._id,
+            name: socket.user.name,
+            avatar: socket.user.avatar,
+            avatarColor: socket.user.avatarColor,
+          },
+          content,
+          type,
+          replyTo: replyTo, // client already knows the referenced message, populated on DB retrieval
+          status: onlineRecipientIds.length > 0 ? 'delivered' : 'sent',
+          deliveredTo: onlineRecipientIds,
+          createdAt: createdAt.toISOString(),
+          tempId: tempId,
+        };
 
+        // 2. IMMEDIATELY deliver to recipients and sender (sub-millisecond latency!)
         recipientIds.forEach((recipientId) => {
           io.to(recipientId).emit('new_message', populated);
           io.to(recipientId).emit('room_updated', { roomId });
           if (onlineRecipientIds.includes(recipientId)) {
-            io.to(message.senderId.toString()).emit('message_delivered', {
-              messageId: message._id,
+            io.to(userId).emit('message_delivered', {
+              messageId,
               roomId,
               userId: recipientId,
             });
           }
         });
 
-        // Notify sender with the saved message object so optimistic UI can reconcile
         socket.emit('new_message', populated);
 
-        // For offline recipients, create pending delivery entries so reconnect sync is efficient
-        const offlineRecipientIds = recipientIds.filter((recipientId) => !onlineUsers.has(recipientId));
-        if (offlineRecipientIds.length > 0) {
+        // 3. Process DB writes asynchronously in the background
+        (async () => {
           try {
-            const docs = offlineRecipientIds.map((rid) => ({ recipientId: rid, messageId: message._id }));
-            await PendingDelivery.insertMany(docs, { ordered: false });
-          } catch (e) {
-            // ignore duplicate key errors or other transient insertion errors
-          }
-        }
+            await Message.create({
+              _id: messageId,
+              roomId,
+              senderId: userId,
+              content,
+              type,
+              replyTo,
+              status: onlineRecipientIds.length > 0 ? 'delivered' : 'sent',
+              deliveredTo: onlineRecipientIds,
+              deliveredAt: onlineRecipientIds.length > 0 ? new Date() : null,
+              createdAt,
+            });
 
+            await Room.findByIdAndUpdate(roomId, {
+              lastMessage: messageId,
+              updatedAt: new Date(),
+            });
+
+            const offlineRecipientIds = recipientIds.filter((rid) => !onlineUsers.has(rid));
+            if (offlineRecipientIds.length > 0) {
+              const docs = offlineRecipientIds.map((rid) => ({ recipientId: rid, messageId }));
+              await PendingDelivery.insertMany(docs, { ordered: false });
+            }
+          } catch (dbErr) {
+            console.error('Async DB write error for message:', dbErr);
+          }
+        })();
+        
         io.to(roomId).emit('room_updated', { roomId });
       } catch (err) {
         console.error('Send message error:', err);
