@@ -197,6 +197,105 @@ router.put('/:id', authMiddleware, async (req, res) => {
     console.error('Update room error:', error);
     res.status(500).json({ message: 'Server error.' });
   }
+// POST /api/rooms/:id/members — add a member to the group (admin only)
+router.post('/:id/members', authMiddleware, async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ message: 'User ID is required.' });
+    }
+
+    const room = await Room.findById(req.params.id);
+    if (!room) {
+      return res.status(404).json({ message: 'Room not found.' });
+    }
+
+    if (room.type !== 'group') {
+      return res.status(400).json({ message: 'Room is not a group.' });
+    }
+
+    // Verify requesting user is admin
+    const isAdmin = room.admins.some(adminId => adminId.toString() === req.user._id.toString());
+    if (!isAdmin) {
+      return res.status(403).json({ message: 'Only group admins can add members.' });
+    }
+
+    // Check if user is already a member
+    if (room.members.some(memberId => memberId.toString() === userId.toString())) {
+      return res.status(400).json({ message: 'User is already a member.' });
+    }
+
+    room.members.push(userId);
+    await room.save();
+
+    const populated = await Room.findById(room._id)
+      .populate('members', 'name email avatar avatarColor status lastSeen')
+      .populate({
+        path: 'lastMessage',
+        populate: { path: 'senderId', select: 'name' },
+      });
+
+    // Notify clients via socket
+    const io = req.app.get('io');
+    if (io) {
+      io.to(room._id.toString()).emit('room_updated', { roomId: room._id.toString() });
+    }
+
+    const roomWithUnread = await addUnreadToRoom(populated, req.user._id);
+    res.json({ room: roomWithUnread });
+  } catch (error) {
+    console.error('Add member error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+});
+
+// DELETE /api/rooms/:id/members/:userId — remove a member from the group (admin only)
+router.delete('/:id/members/:userId', authMiddleware, async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const room = await Room.findById(req.params.id);
+    if (!room) {
+      return res.status(404).json({ message: 'Room not found.' });
+    }
+
+    if (room.type !== 'group') {
+      return res.status(400).json({ message: 'Room is not a group.' });
+    }
+
+    // Verify requesting user is admin
+    const isAdmin = room.admins.some(adminId => adminId.toString() === req.user._id.toString());
+    if (!isAdmin) {
+      return res.status(403).json({ message: 'Only group admins can delete members.' });
+    }
+
+    // Remove from members
+    room.members = room.members.filter(memberId => memberId.toString() !== userId);
+    
+    // Also remove from admins if they were an admin
+    room.admins = room.admins.filter(adminId => adminId.toString() !== userId);
+
+    await room.save();
+
+    const populated = await Room.findById(room._id)
+      .populate('members', 'name email avatar avatarColor status lastSeen')
+      .populate({
+        path: 'lastMessage',
+        populate: { path: 'senderId', select: 'name' },
+      });
+
+    // Notify clients via socket
+    const io = req.app.get('io');
+    if (io) {
+      io.to(room._id.toString()).emit('room_updated', { roomId: room._id.toString() });
+    }
+
+    const roomWithUnread = await addUnreadToRoom(populated, req.user._id);
+    res.json({ room: roomWithUnread });
+  } catch (error) {
+    console.error('Delete member error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
 });
 
 // GET /api/rooms/:id

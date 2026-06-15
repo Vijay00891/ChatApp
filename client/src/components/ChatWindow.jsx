@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback, useId } from 'react';
-import { ArrowLeft, Phone, Video, MoreVertical, X, Edit2, Check, Camera, Trash2, VolumeX, User } from 'lucide-react';
-import { messagesAPI, roomsAPI } from '../lib/api';
+import { ArrowLeft, Phone, Video, MoreVertical, X, Edit2, Check, Camera, Trash2, VolumeX, User, UserPlus } from 'lucide-react';
+import { messagesAPI, roomsAPI, usersAPI } from '../lib/api';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../hooks/useNotification';
@@ -90,6 +90,10 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef(null);
 
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [availableUsers, setAvailableUsers] = useState([]);
+  const [loadingContacts, setLoadingContacts] = useState(false);
+
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -99,6 +103,8 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
     setModalMenuOpen(false);
     setSaving(false);
     setHeaderMenuOpen(false);
+    setShowAddMember(false);
+    setAvailableUsers([]);
   }, [room?._id]);
 
   // Close header menu on click outside
@@ -173,6 +179,54 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleAddMember = async (targetUserId) => {
+    try {
+      setSaving(true);
+      const res = await roomsAPI.addMember(room._id, targetUserId);
+      if (onUpdateRoom) {
+        onUpdateRoom(res.data.room);
+      }
+      setShowAddMember(false);
+    } catch (err) {
+      console.error('Failed to add member:', err);
+      alert(err.response?.data?.message || 'Failed to add member');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRemoveMember = async (targetUserId) => {
+    if (!confirm('Are you sure you want to remove this member?')) return;
+    try {
+      setSaving(true);
+      const res = await roomsAPI.removeMember(room._id, targetUserId);
+      if (onUpdateRoom) {
+        onUpdateRoom(res.data.room);
+      }
+    } catch (err) {
+      console.error('Failed to remove member:', err);
+      alert(err.response?.data?.message || 'Failed to remove member');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleFetchAvailableUsers = async () => {
+    setLoadingContacts(true);
+    try {
+      const res = await usersAPI.getAll();
+      const allUsers = res.data.users || [];
+      const currentMemberIds = new Set(room.members?.map((m) => m._id ?? m));
+      const filtered = allUsers.filter((u) => !currentMemberIds.has(u._id));
+      setAvailableUsers(filtered);
+      setShowAddMember(true);
+    } catch (err) {
+      console.error('Failed to fetch users:', err);
+    } finally {
+      setLoadingContacts(false);
+    }
   };
 
   // Auto-sync messages to cache whenever messages change
@@ -628,12 +682,52 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
                   <h4 className="text-xs font-bold text-subtle-text uppercase tracking-wider">
                     Members ({room.members?.length || 0})
                   </h4>
+                  {room.admins?.some(adminId => (adminId._id ?? adminId) === user?._id) && (
+                    <button
+                      onClick={handleFetchAvailableUsers}
+                      disabled={loadingContacts}
+                      className="text-xs font-semibold text-primary hover:text-primary-dark flex items-center gap-1 hover:underline active:scale-95 transition-all"
+                    >
+                      <UserPlus size={14} />
+                      <span>{loadingContacts ? 'Loading...' : 'Add Member'}</span>
+                    </button>
+                  )}
                 </div>
+
+                {showAddMember && (
+                  <div className="mb-3 p-3 bg-surface border border-border-color rounded-card flex flex-col gap-2 max-h-[180px] overflow-y-auto animate-slide-down">
+                    <div className="flex justify-between items-center pb-2 border-b border-border-color">
+                      <span className="text-xs font-bold text-on-surface">Select user to add:</span>
+                      <button onClick={() => setShowAddMember(false)} className="text-subtle-text hover:text-on-surface">
+                        <X size={14} />
+                      </button>
+                    </div>
+                    {availableUsers.length === 0 ? (
+                      <p className="text-xs text-subtle-text text-center py-2">No other users available to add</p>
+                    ) : (
+                      availableUsers.map((u) => (
+                        <button
+                          key={u._id}
+                          onClick={() => handleAddMember(u._id)}
+                          className="flex items-center gap-2 w-full text-left p-1.5 hover:bg-hover-bg rounded text-xs transition-colors"
+                        >
+                          <Avatar name={u.name} src={u.avatar || ''} size={24} />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{u.name}</p>
+                          </div>
+                          <span className="text-[10px] text-primary font-semibold">Add</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+
                 <div className="w-full bg-background rounded-card border border-border-color overflow-y-auto max-h-[220px] divide-y divide-border-color">
                   {room.members?.map((member) => {
                     const isMemberOnline = isUserOnline(member._id ?? member);
                     const isAdmin = room.admins?.some(adminId => (adminId._id ?? adminId) === (member._id ?? member));
                     const isSelf = member._id === user?._id;
+                    const isCurrentUserAdmin = room.admins?.some(adminId => (adminId._id ?? adminId) === user?._id);
                     
                     return (
                       <div key={member._id} className="flex items-center gap-3 px-3 py-2.5 animate-slide-up">
@@ -648,6 +742,15 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
                           <span className="shrink-0 text-[9px] font-semibold bg-primary-light text-primary px-1.5 py-0.5 rounded-pill">
                             Admin
                           </span>
+                        )}
+                        {isCurrentUserAdmin && !isSelf && (
+                          <button
+                            onClick={() => handleRemoveMember(member._id)}
+                            className="p-1 hover:bg-error/15 text-subtle-text hover:text-error rounded transition-colors active:scale-95 shrink-0"
+                            title="Remove from group"
+                          >
+                            <Trash2 size={13} />
+                          </button>
                         )}
                       </div>
                     );

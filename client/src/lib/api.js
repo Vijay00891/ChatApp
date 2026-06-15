@@ -43,6 +43,7 @@ export const usersAPI = {
   search: (query) => api.get(`/users/search?q=${encodeURIComponent(query)}`),
   getContacts: () => api.get('/users/contacts'),
   addContact: (userId) => api.post(`/users/contacts/${userId}`),
+  getAll: () => api.get('/users'),
 };
 
 // --- Rooms ---
@@ -51,6 +52,8 @@ export const roomsAPI = {
   createDM: (userId) => api.post('/rooms/dm', { targetUserId: userId }),
   createGroup: (name, memberIds) => api.post('/rooms/group', { name, memberIds }),
   update: (roomId, data) => api.put(`/rooms/${roomId}`, data),
+  addMember: (roomId, userId) => api.post(`/rooms/${roomId}/members`, { userId }),
+  removeMember: (roomId, userId) => api.delete(`/rooms/${roomId}/members/${userId}`),
 };
 
 // --- Messages ---
