@@ -77,4 +77,7 @@ userSchema.pre('save', function (next) {
   next();
 });
 
+// Text index for fast search queries
+userSchema.index({ name: 'text', email: 'text' });
+
 module.exports = mongoose.model('User', userSchema);

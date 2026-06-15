@@ -15,12 +15,13 @@ router.get('/search', authMiddleware, async (req, res) => {
     const users = await User.find({
       _id: { $ne: req.user._id },
       $or: [
+        { $text: { $search: q } },
         { name: { $regex: q, $options: 'i' } },
         { email: { $regex: q, $options: 'i' } },
       ],
     })
       .select('name email avatar avatarColor status lastSeen')
-      .limit(20);
+      .limit(10);
 
     res.json({ users });
   } catch (error) {

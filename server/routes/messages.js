@@ -31,12 +31,12 @@ const upload = multer({
 
 const router = express.Router();
 
-// GET /api/messages/:roomId?page=1&limit=50
+// GET /api/messages/:roomId?page=1&limit=20
 router.get('/:roomId', authMiddleware, async (req, res) => {
   try {
     const { roomId } = req.params;
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 50;
+    const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
 
     // Verify user is in this room
