@@ -73,6 +73,10 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
   const [loading, setLoading] = useState(false);
   const [peerTyping, setPeerTyping] = useState(false);
   const [replyingTo, setReplyingTo] = useState(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const scrollContainerRef = useRef(null);
   const bottomRef = useRef(null);
   const instanceId = useId();
   // Tracks the latest pending optimistic temp ID so the socket echo can swap it
@@ -105,6 +109,9 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
     setHeaderMenuOpen(false);
     setShowAddMember(false);
     setAvailableUsers([]);
+    setPage(1);
+    setHasMore(true);
+    setLoadingMore(false);
   }, [room?._id]);
 
   // Close header menu on click outside
@@ -241,6 +248,9 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
     if (!room?._id) return;
     setPeerTyping(false);
     setReplyingTo(null);
+    setPage(1);
+    setHasMore(true);
+    setLoadingMore(false);
 
     // Try loading from cache first to avoid a blank screen/spinner
     let hasCached = false;
@@ -265,6 +275,7 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
       .then((res) => {
         const roomMessages = res.data.messages || [];
         setMessages(roomMessages);
+        setHasMore(res.data.pagination?.hasMore ?? roomMessages.length === 20);
 
         roomMessages
           .filter((m) => (m.senderId?._id ?? m.senderId) !== user?._id)
@@ -461,10 +472,47 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
     emit('request_pending');
   }, [room?._id, isConnected, emit]);
 
-  // Scroll to bottom on new messages
+  // Scroll to bottom on new messages (but NOT when loading older messages)
   useEffect(() => {
+    if (loadingMore) return;
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, peerTyping]);
+  }, [messages, peerTyping, loadingMore]);
+
+  // Handle scroll to top for pagination
+  const handleScroll = (e) => {
+    const { scrollTop } = e.currentTarget;
+    if (scrollTop === 0 && hasMore && !loadingMore && !loading) {
+      const oldScrollHeight = e.currentTarget.scrollHeight;
+      setLoadingMore(true);
+      const nextPage = page + 1;
+      
+      messagesAPI.getByRoom(room._id, nextPage)
+        .then((res) => {
+          const newMessages = res.data.messages || [];
+          if (newMessages.length === 0) {
+            setHasMore(false);
+          } else {
+            setMessages((prev) => {
+              const existingIds = new Set(prev.map(m => m._id));
+              const uniqueNew = newMessages.filter(m => !existingIds.has(m._id));
+              return [...uniqueNew, ...prev];
+            });
+            setPage(nextPage);
+            setHasMore(res.data.pagination?.hasMore ?? newMessages.length === 20);
+
+            // Maintain scroll position stable
+            setTimeout(() => {
+              if (scrollContainerRef.current) {
+                const newScrollHeight = scrollContainerRef.current.scrollHeight;
+                scrollContainerRef.current.scrollTop = newScrollHeight - oldScrollHeight;
+              }
+            }, 50);
+          }
+        })
+        .catch((err) => console.error('Failed to load more messages:', err))
+        .finally(() => setLoadingMore(false));
+    }
+  };
 
   const pendingCallbacks = useRef({});
 
@@ -861,7 +909,7 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto py-2 scrollbar-hidden">
+      <div ref={scrollContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto py-2 scrollbar-hidden">
         {loading && (
           <div className="flex justify-center items-center h-full">
             <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
