@@ -15,7 +15,6 @@ router.get('/search', authMiddleware, async (req, res) => {
     const users = await User.find({
       _id: { $ne: req.user._id },
       $or: [
-        { $text: { $search: q } },
         { name: { $regex: q, $options: 'i' } },
         { email: { $regex: q, $options: 'i' } },
       ],
