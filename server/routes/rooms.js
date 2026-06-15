@@ -135,6 +135,34 @@ router.post('/group', authMiddleware, async (req, res) => {
   }
 });
 
+const uploadBase64ToCloudinary = async (base64Data) => {
+  if (!base64Data || !base64Data.startsWith('data:')) return base64Data;
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const uploadPreset = process.env.CLOUDINARY_UPLOAD_PRESET;
+  if (!cloudName || !uploadPreset) {
+    console.warn('[Rooms] Cloudinary credentials missing, saving base64 directly');
+    return base64Data;
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('file', base64Data);
+    formData.append('upload_preset', uploadPreset);
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Cloudinary upload failed');
+    return data.secure_url;
+  } catch (err) {
+    console.error('[Rooms] Cloudinary upload failed, fallback to raw base64:', err.message);
+    return base64Data;
+  }
+};
+
 // PUT /api/rooms/:id — update room (name and/or avatar)
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
@@ -145,7 +173,9 @@ router.put('/:id', authMiddleware, async (req, res) => {
     }
 
     if (name !== undefined) room.name = name;
-    if (avatar !== undefined) room.avatar = avatar;
+    if (avatar !== undefined) {
+      room.avatar = await uploadBase64ToCloudinary(avatar);
+    }
 
     await room.save();
 
