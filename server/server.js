@@ -18,8 +18,8 @@ const server = http.createServer(app);
 const ALLOWED_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:3000',
-  'https://chat-awm9snapa-vijaysuryawanshi891-8837s-projects.vercel.app',
-  process.env.CLIENT_URL   // keeps it dynamic too
+  'https://chat-app-two-amber-95.vercel.app',  // ✅ correct production URL
+  process.env.CLIENT_URL
 ].filter(Boolean)
 
 // Socket.io setup
