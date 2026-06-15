@@ -11,6 +11,7 @@ import InputBar from './InputBar';
 import TypingIndicator from './TypingIndicator';
 import CallUI from './CallUI';
 import { formatLastSeen } from '../lib/formatLastSeen';
+import { getCachedMessages, setCachedMessages } from '../lib/cache';
 
 function getPeerFromRoom(room, currentUserId) {
   if (!room) return null;
@@ -174,13 +175,34 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
     reader.readAsDataURL(file);
   };
 
+  // Auto-sync messages to cache whenever messages change
+  useEffect(() => {
+    if (user?._id && room?._id && messages.length > 0) {
+      setCachedMessages(user._id, room._id, messages);
+    }
+  }, [messages, user?._id, room?._id]);
+
   // Fetch history
   useEffect(() => {
     if (!room?._id) return;
-    setMessages([]);
     setPeerTyping(false);
     setReplyingTo(null);
-    setLoading(true);
+
+    // Try loading from cache first to avoid a blank screen/spinner
+    let hasCached = false;
+    if (user?._id) {
+      const cached = getCachedMessages(user._id, room._id);
+      if (cached && cached.length > 0) {
+        setMessages(cached);
+        setLoading(false);
+        hasCached = true;
+      }
+    }
+
+    if (!hasCached) {
+      setMessages([]);
+      setLoading(true);
+    }
 
     emit('join_room', room._id);
 

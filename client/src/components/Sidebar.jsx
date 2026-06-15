@@ -4,6 +4,7 @@ import { roomsAPI, usersAPI } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import Avatar from './Avatar';
+import { getCachedRooms, setCachedRooms } from '../lib/cache';
 
 function formatRelativeTime(dateStr) {
   if (!dateStr) return '';
@@ -242,6 +243,9 @@ export default function Sidebar({ selectedRoom, onSelectRoom, deletedRooms = {},
       .then((res) => {
         const roomsList = res.data.rooms || [];
         setRooms(roomsList);
+        if (user?._id) {
+          setCachedRooms(user._id, roomsList);
+        }
         if (selectedRoom) {
           const updatedSelected = roomsList.find((r) => r._id === selectedRoom._id);
           if (updatedSelected) {
@@ -254,11 +258,18 @@ export default function Sidebar({ selectedRoom, onSelectRoom, deletedRooms = {},
       })
       .catch(() => {})
       .finally(() => setLoadingRooms(false));
-  }, [selectedRoom, onSelectRoom]);
+  }, [selectedRoom, onSelectRoom, user?._id]);
 
   useEffect(() => {
+    if (user?._id) {
+      const cached = getCachedRooms(user._id);
+      if (cached && cached.length > 0) {
+        setRooms(cached);
+        setLoadingRooms(false);
+      }
+    }
     loadRooms();
-  }, [loadRooms]);
+  }, [loadRooms, user?._id]);
 
   // Debounced version — batches rapid socket events into one API call
   const debounceRef = useRef(null);
