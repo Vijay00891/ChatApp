@@ -16,15 +16,11 @@ const app = express();
 const server = http.createServer(app);
 
 const ALLOWED_ORIGINS = [
-  process.env.CLIENT_URL || 'http://localhost:3000',
-  'http://localhost:3000',
   'http://localhost:5173',
-  'http://192.168.0.103:3000',
-  'http://192.168.0.107:3000',
-  'http://192.168.0.103:5173',
-  'http://192.168.0.107:5173',
+  'http://localhost:3000',
   'https://chat-awm9snapa-vijaysuryawanshi891-8837s-projects.vercel.app',
-];
+  process.env.CLIENT_URL   // keeps it dynamic too
+].filter(Boolean)
 
 // Socket.io setup
 const io = new Server(server, {
@@ -46,6 +42,13 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 }));
+
+// Handle OPTIONS preflight for all routes
+app.options('*', cors({
+  origin: ALLOWED_ORIGINS,
+  credentials: true
+}));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
