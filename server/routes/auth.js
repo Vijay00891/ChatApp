@@ -70,8 +70,8 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password.' });
     }
 
-    user.status = 'online';
-    await user.save({ validateBeforeSave: false });
+    await User.updateOne({ _id: user._id }, { $set: { status: 'online' } });
+    user.status = 'online'; // Update local object for the response
 
     const token = generateToken(user._id);
 

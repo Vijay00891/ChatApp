@@ -26,7 +26,7 @@ const addUnreadToRooms = async (rooms, userId) => {
   const unreadMap = new Map(unreadCounts.map((u) => [u._id.toString(), u.count]));
 
   return rooms.map((room) => ({
-    ...room.toObject(),
+    ...(room.toObject ? room.toObject() : room),
     unread: unreadMap.get(room._id.toString()) || 0,
   }));
 };
@@ -39,7 +39,7 @@ const addUnreadToRoom = async (room, userId) => {
     readBy: { $ne: userId },
   });
   return {
-    ...room.toObject(),
+    ...(room.toObject ? room.toObject() : room),
     unread,
   };
 };
@@ -53,7 +53,8 @@ router.get('/', authMiddleware, async (req, res) => {
         path: 'lastMessage',
         populate: { path: 'senderId', select: 'name' },
       })
-      .sort({ updatedAt: -1 });
+      .sort({ updatedAt: -1 })
+      .lean();
 
     const roomsWithUnread = await addUnreadToRooms(rooms, req.user._id);
     res.json({ rooms: roomsWithUnread });
@@ -80,7 +81,8 @@ router.post('/dm', authMiddleware, async (req, res) => {
       .populate({
         path: 'lastMessage',
         populate: { path: 'senderId', select: 'name' },
-      });
+      })
+      .lean();
 
     if (!room) {
       room = await Room.create({

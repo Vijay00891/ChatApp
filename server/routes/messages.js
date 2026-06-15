@@ -56,7 +56,8 @@ router.get('/:roomId', authMiddleware, async (req, res) => {
         })
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit),
+        .limit(limit)
+        .lean(),
       Message.countDocuments({ roomId }),
     ]);
 

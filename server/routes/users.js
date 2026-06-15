@@ -49,7 +49,8 @@ router.get('/', authMiddleware, async (req, res) => {
   try {
     const users = await User.find({ _id: { $ne: req.user._id } })
       .select('name email avatar avatarColor status lastSeen')
-      .limit(50);
+      .limit(50)
+      .lean();
     res.json({ users });
   } catch (error) {
     res.status(500).json({ message: 'Server error.' });
