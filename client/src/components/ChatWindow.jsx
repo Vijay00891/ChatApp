@@ -307,6 +307,21 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
       if (msg.roomId === room._id) {
         setMessages((prev) => {
           if (prev.some((m) => m._id === msg._id)) return prev;
+
+          // Resolve replyTo reference from loaded messages
+          const resolvedMsg = { ...msg };
+          if (resolvedMsg.replyTo && typeof resolvedMsg.replyTo === 'string') {
+            const parentMsg = prev.find((m) => m._id === resolvedMsg.replyTo);
+            if (parentMsg) {
+              resolvedMsg.replyTo = {
+                _id: parentMsg._id,
+                content: parentMsg.content,
+                type: parentMsg.type,
+                senderId: parentMsg.senderId,
+              };
+            }
+          }
+
           const tempId = msg.tempId || pendingTempId.current;
           if (tempId && prev.some((m) => m._id === tempId)) {
             if (tempId === pendingTempId.current) pendingTempId.current = null;
@@ -315,9 +330,9 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
               pendingCallbacks.current[tempId](msg._id);
               delete pendingCallbacks.current[tempId];
             }
-            return prev.map((m) => (m._id === tempId ? msg : m));
+            return prev.map((m) => (m._id === tempId ? resolvedMsg : m));
           }
-          return [...prev, msg];
+          return [...prev, resolvedMsg];
         });
 
         if ((msg.senderId?._id ?? msg.senderId) !== user?._id) {
