@@ -58,13 +58,15 @@ router.get('/:roomId', authMiddleware, async (req, res) => {
       .limit(limit)
       .lean();
 
+    const hasMore = messages.length === limit;
+
     res.json({
       messages: messages.reverse(),
       pagination: {
         page,
         limit,
-        total,
-        hasMore: skip + limit < total,
+        total: messages.length + skip, // estimate total based on current fetch
+        hasMore,
       },
     });
   } catch (error) {
