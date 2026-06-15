@@ -5,21 +5,30 @@ const authMiddleware = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-// Helper to calculate unread counts
+// Helper to calculate unread counts using a single aggregation instead of N+1 queries
 const addUnreadToRooms = async (rooms, userId) => {
-  return await Promise.all(
-    rooms.map(async (room) => {
-      const unread = await Message.countDocuments({
-        roomId: room._id,
+  if (rooms.length === 0) return [];
+
+  const roomIds = rooms.map((r) => r._id);
+
+  // Single aggregation for all unread counts — replaces N separate countDocuments calls
+  const unreadCounts = await Message.aggregate([
+    {
+      $match: {
+        roomId: { $in: roomIds },
         senderId: { $ne: userId },
         readBy: { $ne: userId },
-      });
-      return {
-        ...room.toObject(),
-        unread,
-      };
-    })
-  );
+      },
+    },
+    { $group: { _id: '$roomId', count: { $sum: 1 } } },
+  ]);
+
+  const unreadMap = new Map(unreadCounts.map((u) => [u._id.toString(), u.count]));
+
+  return rooms.map((room) => ({
+    ...room.toObject(),
+    unread: unreadMap.get(room._id.toString()) || 0,
+  }));
 };
 
 const addUnreadToRoom = async (room, userId) => {

@@ -41,4 +41,7 @@ const roomSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Index for fast room lookups by member
+roomSchema.index({ members: 1 });
+
 module.exports = mongoose.model('Room', roomSchema);

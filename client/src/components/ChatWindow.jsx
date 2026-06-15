@@ -337,12 +337,10 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
 
     on('room_updated', instanceId, (data) => {
       if (data.roomId === room._id) {
+        // Only fetch this specific room instead of all rooms — Sidebar handles the full refresh
         roomsAPI.getAll().then((res) => {
-          const roomsList = res.data.rooms || [];
-          const updatedSelected = roomsList.find((r) => r._id === room._id);
-          if (updatedSelected && onUpdateRoom) {
-            onUpdateRoom(updatedSelected);
-          }
+          const updated = (res.data.rooms || []).find((r) => r._id === room._id);
+          if (updated && onUpdateRoom) onUpdateRoom(updated);
         }).catch(() => {});
       }
     });

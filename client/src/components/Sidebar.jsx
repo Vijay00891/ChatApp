@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useId, useMemo } from 'react';
+import { useState, useEffect, useCallback, useId, useMemo, useRef } from 'react';
 import { Search, X, Plus, MessageSquare, LogOut, Wifi, WifiOff, MoreVertical, Pin, Trash2, VolumeX } from 'lucide-react';
 import { roomsAPI, usersAPI } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
@@ -260,17 +260,25 @@ export default function Sidebar({ selectedRoom, onSelectRoom, deletedRooms = {},
     loadRooms();
   }, [loadRooms]);
 
-  // Listen for room updates to refresh sidebar
+  // Debounced version — batches rapid socket events into one API call
+  const debounceRef = useRef(null);
+  const debouncedLoadRooms = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => loadRooms(), 300);
+  }, [loadRooms]);
+
+  // Listen for room updates to refresh sidebar (debounced to avoid rapid-fire API calls)
   useEffect(() => {
-    on('room_updated', instanceId, () => loadRooms());
-    on('new_message', instanceId, () => loadRooms());
-    on('pending_messages', instanceId, () => loadRooms());
+    on('room_updated', instanceId, () => debouncedLoadRooms());
+    on('new_message', instanceId, () => debouncedLoadRooms());
+    on('pending_messages', instanceId, () => debouncedLoadRooms());
     return () => {
       off('room_updated', instanceId);
       off('new_message', instanceId);
       off('pending_messages', instanceId);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [instanceId, on, off, loadRooms]);
+  }, [instanceId, on, off, debouncedLoadRooms]);
 
   // Search users
   useEffect(() => {

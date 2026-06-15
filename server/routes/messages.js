@@ -40,23 +40,25 @@ router.get('/:roomId', authMiddleware, async (req, res) => {
     const skip = (page - 1) * limit;
 
     // Verify user is in this room
-    const room = await Room.findOne({ _id: roomId, members: req.user._id });
+    const room = await Room.findOne({ _id: roomId, members: req.user._id }).lean();
     if (!room) {
       return res.status(403).json({ message: 'Access denied.' });
     }
 
-    const messages = await Message.find({ roomId })
-      .populate('senderId', 'name avatar avatarColor')
-      .populate({
-        path: 'replyTo',
-        select: 'content type senderId',
-        populate: { path: 'senderId', select: 'name' }
-      })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    const total = await Message.countDocuments({ roomId });
+    // Run message fetch and count in parallel instead of sequentially
+    const [messages, total] = await Promise.all([
+      Message.find({ roomId })
+        .populate('senderId', 'name avatar avatarColor')
+        .populate({
+          path: 'replyTo',
+          select: 'content type senderId',
+          populate: { path: 'senderId', select: 'name' }
+        })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Message.countDocuments({ roomId }),
+    ]);
 
     res.json({
       messages: messages.reverse(),

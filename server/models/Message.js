@@ -80,5 +80,7 @@ const messageSchema = new mongoose.Schema(
 );
 
 messageSchema.index({ roomId: 1, createdAt: -1 });
+// Compound index for unread count aggregation (used in rooms.js)
+messageSchema.index({ roomId: 1, senderId: 1, readBy: 1 });
 
 module.exports = mongoose.model('Message', messageSchema);
