@@ -23,6 +23,7 @@ const ALLOWED_ORIGINS = [
   'http://192.168.0.107:3000',
   'http://192.168.0.103:5173',
   'http://192.168.0.107:5173',
+  'https://chat-awm9snapa-vijaysuryawanshi891-8837s-projects.vercel.app',
 ];
 
 // Socket.io setup
@@ -41,6 +42,8 @@ app.set('io', io);
 // Middleware
 app.use(cors({
   origin: ALLOWED_ORIGINS,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
