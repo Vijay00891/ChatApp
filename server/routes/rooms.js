@@ -197,6 +197,8 @@ router.put('/:id', authMiddleware, async (req, res) => {
     console.error('Update room error:', error);
     res.status(500).json({ message: 'Server error.' });
   }
+});
+
 // POST /api/rooms/:id/members — add a member to the group (admin only)
 router.post('/:id/members', authMiddleware, async (req, res) => {
   try {
