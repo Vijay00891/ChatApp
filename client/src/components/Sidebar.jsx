@@ -4,6 +4,7 @@ import { roomsAPI, usersAPI } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import Avatar from './Avatar';
+import ProfileModal from './ProfileModal';
 import { getCachedRooms, setCachedRooms } from '../lib/cache';
 
 function formatRelativeTime(dateStr) {
@@ -152,6 +153,7 @@ export default function Sidebar({ selectedRoom, onSelectRoom, deletedRooms = {},
 
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   const [showGroupModal, setShowGroupModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [selectedMembers, setSelectedMembers] = useState([]);
 
@@ -334,12 +336,14 @@ export default function Sidebar({ selectedRoom, onSelectRoom, deletedRooms = {},
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-4 border-b border-border-color">
         <div className="flex items-center gap-2 flex-1">
-          <Avatar
-            name={user?.name ?? 'App'}
-            src={user?.avatar || ''}
-            size={32}
-            className="shrink-0"
-          />
+          <div className="cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setShowProfileModal(true)}>
+            <Avatar
+              name={user?.name ?? 'App'}
+              src={user?.avatar || ''}
+              size={40}
+              className="shrink-0"
+            />
+          </div>
           <span className="text-base font-semibold text-on-surface font-google">Messages</span>
 
           {/* Header Menu Dropdown (Left side) */}
@@ -572,6 +576,11 @@ export default function Sidebar({ selectedRoom, onSelectRoom, deletedRooms = {},
           </div>
         </div>
       )}
+      
+      <ProfileModal 
+        isOpen={showProfileModal} 
+        onClose={() => setShowProfileModal(false)} 
+      />
     </div>
   );
 }

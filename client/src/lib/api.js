@@ -44,6 +44,7 @@ export const usersAPI = {
   getContacts: () => api.get('/users/contacts'),
   addContact: (userId) => api.post(`/users/contacts/${userId}`),
   getAll: () => api.get('/users'),
+  updateProfile: (data) => api.put('/users/profile', data),
 };
 
 // --- Rooms ---

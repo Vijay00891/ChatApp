@@ -10,6 +10,7 @@ import MessageBubble from './MessageBubble';
 import InputBar from './InputBar';
 import TypingIndicator from './TypingIndicator';
 import CallUI from './CallUI';
+import ImagePreviewModal from './ImagePreviewModal';
 import { formatLastSeen } from '../lib/formatLastSeen';
 import { getCachedMessages, setCachedMessages } from '../lib/cache';
 
@@ -99,6 +100,7 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
   const [loadingContacts, setLoadingContacts] = useState(false);
 
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   useEffect(() => {
     setShowInfoModal(false);
@@ -845,13 +847,18 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
           <ArrowLeft size={22} />
         </button>
 
-        <div 
-          onClick={() => setShowInfoModal(true)}
-          className="flex flex-1 items-center gap-3 cursor-pointer select-none hover:opacity-90 active:scale-[0.99] transition-all"
-        >
-          <Avatar name={roomName} src={room.avatar || ''} size={40} online={peerOnline} />
+        <div className="flex flex-1 items-center gap-3">
+          <div 
+            className="cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={() => setShowPreviewModal(true)}
+          >
+            <Avatar name={roomName} src={room.avatar || ''} size={48} online={peerOnline} />
+          </div>
 
-          <div className="flex-1 min-w-0">
+          <div 
+            className="flex-1 min-w-0 cursor-pointer select-none hover:opacity-90 active:scale-[0.99] transition-all"
+            onClick={() => setShowInfoModal(true)}
+          >
             <h2 className="text-sm font-semibold text-on-surface truncate leading-tight flex items-center gap-1.5">
               {roomName}
               {mutedRooms.includes(room._id) && <VolumeX size={13} className="text-subtle-text shrink-0" />}
@@ -988,6 +995,13 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
         endCall={endCall}
         toggleMic={toggleMic}
         toggleCamera={toggleCamera}
+      />
+
+      <ImagePreviewModal
+        isOpen={showPreviewModal}
+        onClose={() => setShowPreviewModal(false)}
+        src={room?.avatar || ''}
+        name={roomName}
       />
     </div>
   );

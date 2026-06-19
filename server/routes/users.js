@@ -57,4 +57,64 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 });
 
+const uploadBase64ToCloudinary = async (base64Data) => {
+  if (!base64Data || !base64Data.startsWith('data:')) return base64Data;
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const uploadPreset = process.env.CLOUDINARY_UPLOAD_PRESET;
+  if (!cloudName || !uploadPreset) {
+    console.warn('[Users] Cloudinary credentials missing, saving base64 directly');
+    return base64Data;
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('file', base64Data);
+    formData.append('upload_preset', uploadPreset);
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Cloudinary upload failed');
+    return data.secure_url;
+  } catch (err) {
+    console.error('[Users] Cloudinary upload failed, fallback to raw base64:', err.message);
+    return base64Data;
+  }
+};
+
+// PUT /api/users/profile — update user profile (e.g. avatar, name)
+router.put('/profile', authMiddleware, async (req, res) => {
+  try {
+    const { name, avatar } = req.body;
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    if (name) user.name = name;
+    if (avatar !== undefined) {
+      user.avatar = await uploadBase64ToCloudinary(avatar);
+    }
+
+    await user.save();
+
+    res.json({
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+        avatarColor: user.avatarColor,
+        status: user.status,
+      }
+    });
+  } catch (error) {
+    console.error('Profile update error:', error);
+    res.status(500).json({ message: 'Server error updating profile.' });
+  }
+});
+
 module.exports = router;
