@@ -251,8 +251,9 @@ export default function Sidebar({ selectedRoom, onSelectRoom, deletedRooms = {},
         if (selectedRoom) {
           const updatedSelected = roomsList.find((r) => r._id === selectedRoom._id);
           if (updatedSelected) {
-            // Check if name or avatar has changed to avoid unnecessary updates
-            if (updatedSelected.name !== selectedRoom.name || updatedSelected.avatar !== selectedRoom.avatar) {
+            // Check if name, avatar or members have changed to avoid unnecessary updates
+            const membersChanged = JSON.stringify(updatedSelected.members) !== JSON.stringify(selectedRoom.members);
+            if (updatedSelected.name !== selectedRoom.name || updatedSelected.avatar !== selectedRoom.avatar || membersChanged) {
               onSelectRoom(updatedSelected);
             }
           }
@@ -285,10 +286,12 @@ export default function Sidebar({ selectedRoom, onSelectRoom, deletedRooms = {},
     on('room_updated', instanceId, () => debouncedLoadRooms());
     on('new_message', instanceId, () => debouncedLoadRooms());
     on('pending_messages', instanceId, () => debouncedLoadRooms());
+    on('user_profile_updated', instanceId, () => debouncedLoadRooms());
     return () => {
       off('room_updated', instanceId);
       off('new_message', instanceId);
       off('pending_messages', instanceId);
+      off('user_profile_updated', instanceId);
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [instanceId, on, off, debouncedLoadRooms]);

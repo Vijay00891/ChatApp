@@ -101,6 +101,11 @@ router.put('/profile', authMiddleware, async (req, res) => {
 
     await user.save();
 
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('user_profile_updated', { userId: user._id.toString() });
+    }
+
     res.json({
       user: {
         _id: user._id,

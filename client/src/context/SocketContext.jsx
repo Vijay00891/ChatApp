@@ -98,6 +98,7 @@ export function SocketProvider({ children }) {
       'call:unavailable',
       'call:ice-candidate',
       'reaction_update',
+      'user_profile_updated',
     ];
 
     forwardedEvents.forEach((event) => {
