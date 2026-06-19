@@ -44,7 +44,7 @@ function RoomItem({ room, currentUserId, isSelected, onClick, isOnline, onPin, o
                   ${isSelected ? 'bg-active-bg border-l-4 border-primary pl-2' : ''}`}
       style={{ display: 'flex', alignItems: 'center', gap: '12px' }}
     >
-      <Avatar name={name} src={room.avatar || ''} size={46} online={isOnline} />
+      <Avatar name={name} src={room.avatar || peer?.avatar || ''} size={46} online={isOnline} />
       <div className="flex-1 min-w-0 pr-1">
         <div className="flex justify-between items-baseline gap-1">
           <span className="text-sm font-medium text-on-surface truncate flex items-center gap-1.5">
@@ -132,7 +132,7 @@ function UserSearchResult({ user, onStartChat }) {
       onClick={() => onStartChat(user._id)}
       className="sidebar-item w-full text-left ripple-container"
     >
-      <Avatar name={user.name} size={40} />
+      <Avatar name={user.name} src={user.avatar || ''} size={40} />
       <div className="min-w-0">
         <p className="text-sm font-medium text-on-surface truncate">{user.name}</p>
         <p className="text-xs text-subtle-text truncate">{user.email}</p>
