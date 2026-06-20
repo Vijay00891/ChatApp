@@ -57,6 +57,12 @@ export const roomsAPI = {
   removeMember: (roomId, userId) => api.delete(`/rooms/${roomId}/members/${userId}`),
 };
 
+// --- Notifications ---
+export const notificationsAPI = {
+  getVapidPublicKey: () => api.get('/notifications/vapidPublicKey'),
+  subscribe: (subscription) => api.post('/notifications/subscribe', subscription),
+};
+
 // --- Messages ---
 export const messagesAPI = {
   getByRoom: (roomId, page = 1) => api.get(`/messages/${roomId}?page=${page}`),

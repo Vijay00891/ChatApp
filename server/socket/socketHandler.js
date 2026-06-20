@@ -4,6 +4,15 @@ const Message = require('../models/Message');
 const Room = require('../models/Room');
 const User = require('../models/User');
 const PendingDelivery = require('../models/PendingDelivery');
+const webpush = require('web-push');
+
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(
+    'mailto:test@example.com',
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+}
 
 // Map userId -> socketId for presence and reconnect handling
 const onlineUsers = new Map();
@@ -150,6 +159,35 @@ const socketHandler = (io) => {
             if (offlineRecipientIds.length > 0) {
               const docs = offlineRecipientIds.map((rid) => ({ recipientId: rid, messageId }));
               await PendingDelivery.insertMany(docs, { ordered: false });
+
+              if (process.env.VAPID_PUBLIC_KEY) {
+                const offlineUsers = await User.find({ _id: { $in: offlineRecipientIds } });
+                const payload = JSON.stringify({
+                  title: `New message from ${socket.user.name}`,
+                  body: content || (type === 'image' ? '📸 Image' : '📎 Attachment'),
+                  url: `/?room=${roomId}`
+                });
+
+                for (const u of offlineUsers) {
+                  if (u.pushSubscriptions && u.pushSubscriptions.length > 0) {
+                    let dirty = false;
+                    for (const sub of u.pushSubscriptions) {
+                      try {
+                        await webpush.sendNotification(sub, payload);
+                      } catch (e) {
+                        if (e.statusCode === 410 || e.statusCode === 404) {
+                          // Subscription expired or invalid
+                          u.pushSubscriptions = u.pushSubscriptions.filter(s => s.endpoint !== sub.endpoint);
+                          dirty = true;
+                        } else {
+                          console.error('Web Push error:', e.message);
+                        }
+                      }
+                    }
+                    if (dirty) await u.save();
+                  }
+                }
+              }
             }
           } catch (dbErr) {
             console.error('Async DB write error for message:', dbErr);
