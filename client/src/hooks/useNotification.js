@@ -28,6 +28,9 @@ export function useNotification() {
       let subscription = await registration.pushManager.getSubscription();
       if (!subscription) {
         const { data } = await notificationsAPI.getVapidPublicKey();
+        if (!data || !data.publicKey) {
+          throw new Error("VAPID public key is missing from the server.");
+        }
         const convertedVapidKey = urlBase64ToUint8Array(data.publicKey);
         
         subscription = await registration.pushManager.subscribe({
