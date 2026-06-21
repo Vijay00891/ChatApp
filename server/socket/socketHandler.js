@@ -40,12 +40,18 @@ const socketHandler = (io) => {
     const userId = socket.userId;
     console.log(`✅ User connected: ${socket.user.name} (${userId})`);
 
-    onlineUsers.set(userId, socket.id);
+    const userSockets = onlineUsers.get(userId) || new Set();
+    const isFirstConnection = userSockets.size === 0;
+    
+    userSockets.add(socket.id);
+    onlineUsers.set(userId, userSockets);
     socket.join(userId); // personal room for reliable delivery notifications
 
-    // Update user status to online in DB
-    await User.findByIdAndUpdate(userId, { status: 'online' });
-    socket.broadcast.emit('user_online', { userId });
+    if (isFirstConnection) {
+      // Update user status to online in DB
+      await User.findByIdAndUpdate(userId, { status: 'online' });
+      socket.broadcast.emit('user_online', { userId });
+    }
 
     // ── get_online_users ───────────────────────────────────────────────────────
     socket.on('get_online_users', () => {
@@ -293,23 +299,28 @@ const socketHandler = (io) => {
     // ── disconnect ────────────────────────────────────────────────────────────
     socket.on('disconnect', async () => {
       console.log(`❌ User disconnected: ${socket.user.name}`);
-      onlineUsers.delete(userId);
-      socket.leave(userId);
-
-      const lastSeen = new Date();
-      await User.findByIdAndUpdate(userId, { status: 'offline', lastSeen });
-      socket.broadcast.emit('user_offline', { userId, lastSeen });
+      
+      const userSockets = onlineUsers.get(userId);
+      if (userSockets) {
+        userSockets.delete(socket.id);
+        
+        if (userSockets.size === 0) {
+          onlineUsers.delete(userId);
+          const lastSeen = new Date();
+          await User.findByIdAndUpdate(userId, { status: 'offline', lastSeen });
+          socket.broadcast.emit('user_offline', { userId, lastSeen });
+        }
+      }
     });
 
     // ── WebRTC call events ────────────────────────────────────────────────────
     socket.on('call:initiate', ({ receiverId, callType, offer }) => {
-      const receiverSocketId = onlineUsers.get(receiverId);
-      if (!receiverSocketId) {
+      if (!onlineUsers.has(receiverId)) {
         socket.emit('call:unavailable', { message: 'User is not online' });
         return;
       }
       
-      io.to(receiverSocketId).emit('call:incoming', {
+      io.to(receiverId).emit('call:incoming', {
         callerId: userId,
         callerName: socket.user.name,
         callerAvatar: socket.user.avatar || null,
@@ -319,23 +330,20 @@ const socketHandler = (io) => {
     });
 
     socket.on('call:accept', ({ callerId, answer }) => {
-      const callerSocketId = onlineUsers.get(callerId);
-      if (callerSocketId) {
-        io.to(callerSocketId).emit('call:accepted', { answer });
+      if (onlineUsers.has(callerId)) {
+        io.to(callerId).emit('call:accepted', { answer });
       }
     });
 
     socket.on('call:reject', ({ callerId }) => {
-      const callerSocketId = onlineUsers.get(callerId);
-      if (callerSocketId) {
-        io.to(callerSocketId).emit('call:rejected', { rejectedBy: socket.user.name });
+      if (onlineUsers.has(callerId)) {
+        io.to(callerId).emit('call:rejected', { rejectedBy: socket.user.name });
       }
     });
 
     socket.on('call:ice-candidate', ({ targetId, candidate }) => {
-      const targetSocketId = onlineUsers.get(targetId);
-      if (targetSocketId) {
-        io.to(targetSocketId).emit('call:ice-candidate', {
+      if (onlineUsers.has(targetId)) {
+        io.to(targetId).emit('call:ice-candidate', {
           candidate,
           fromId: userId
         });
@@ -343,9 +351,8 @@ const socketHandler = (io) => {
     });
 
     socket.on('call:end', ({ targetId }) => {
-      const targetSocketId = onlineUsers.get(targetId);
-      if (targetSocketId) {
-        io.to(targetSocketId).emit('call:ended', { endedBy: socket.user.name });
+      if (onlineUsers.has(targetId)) {
+        io.to(targetId).emit('call:ended', { endedBy: socket.user.name });
       }
     });
 
