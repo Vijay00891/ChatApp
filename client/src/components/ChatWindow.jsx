@@ -254,26 +254,29 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
     setHasMore(true);
     setLoadingMore(false);
 
-    // Try loading from cache first to avoid a blank screen/spinner
-    let hasCached = false;
-    if (user?._id) {
-      const cached = getCachedMessages(user._id, room._id);
-      if (cached && cached.length > 0) {
-        setMessages(cached);
-        setLoading(false);
-        hasCached = true;
+    let isMounted = true;
+
+    const loadHistory = async () => {
+      let hasCached = false;
+      if (user?._id) {
+        const cached = await getCachedMessages(user._id, room._id);
+        if (cached && cached.length > 0 && isMounted) {
+          setMessages(cached);
+          setLoading(false);
+          hasCached = true;
+        }
       }
-    }
 
-    if (!hasCached) {
-      setMessages([]);
-      setLoading(true);
-    }
+      if (!hasCached && isMounted) {
+        setMessages([]);
+        setLoading(true);
+      }
 
-    emit('join_room', room._id);
+      if (!isMounted) return;
+      emit('join_room', room._id);
 
-    messagesAPI
-      .getByRoom(room._id)
+      messagesAPI
+        .getByRoom(room._id)
       .then((res) => {
         const roomMessages = res.data.messages || [];
         setMessages(roomMessages);
@@ -294,9 +297,15 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
         }
       })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+    };
+    
+    loadHistory();
 
     return () => {
+      isMounted = false;
       emit('leave_room', room._id);
     };
   }, [room?._id, emit, user?._id]);
@@ -561,6 +570,10 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
     },
     [room?._id, user, emit, replyingTo]
   );
+
+  const handleReply = useCallback((message) => {
+    setReplyingTo(message);
+  }, []);
 
   const items = groupByDate(messages);
   let msgIdx = -1;
@@ -962,7 +975,7 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
                 key={item.value._id}
                 message={item.value}
                 prevMessage={prevMsg}
-                onReply={() => setReplyingTo(item.value)}
+                onReply={handleReply}
               />
             );
           })}

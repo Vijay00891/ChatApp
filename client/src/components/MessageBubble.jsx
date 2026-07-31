@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, memo } from 'react';
 import { Check, CheckCheck, FileText, X, ChevronDown, Copy, Reply, Smile } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
@@ -36,7 +36,7 @@ function isVideoUrl(url) {
   return false;
 }
 
-export default function MessageBubble({ message, prevMessage, onReply }) {
+const MessageBubble = memo(function MessageBubble({ message, prevMessage, onReply }) {
   const { user } = useAuth();
   const { emit } = useSocket();
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -334,4 +334,6 @@ export default function MessageBubble({ message, prevMessage, onReply }) {
       )}
     </div>
   );
-}
+});
+
+export default MessageBubble;

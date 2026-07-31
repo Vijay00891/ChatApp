@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useId, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useId, useMemo, useRef, memo } from 'react';
 import { Search, X, Plus, MessageSquare, LogOut, Wifi, WifiOff, MoreVertical, Pin, Trash2, VolumeX } from 'lucide-react';
 import { roomsAPI, usersAPI } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
@@ -18,7 +18,7 @@ function formatRelativeTime(dateStr) {
   return new Date(dateStr).toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
-function RoomItem({ room, currentUserId, isSelected, onClick, isOnline, onPin, onDelete, isPinned, isMuted }) {
+const RoomItem = memo(function RoomItem({ room, currentUserId, isSelected, onClick, isOnline, onPin, onDelete, isPinned, isMuted }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const peer =
     room.type === 'dm'
@@ -124,7 +124,7 @@ function RoomItem({ room, currentUserId, isSelected, onClick, isOnline, onPin, o
       </div>
     </div>
   );
-}
+});
 
 function UserSearchResult({ user, onStartChat }) {
   return (
@@ -264,14 +264,17 @@ export default function Sidebar({ selectedRoom, onSelectRoom, deletedRooms = {},
   }, [selectedRoom, onSelectRoom, user?._id]);
 
   useEffect(() => {
-    if (user?._id) {
-      const cached = getCachedRooms(user._id);
-      if (cached && cached.length > 0) {
-        setRooms(cached);
-        setLoadingRooms(false);
+    const initRooms = async () => {
+      if (user?._id) {
+        const cached = await getCachedRooms(user._id);
+        if (cached && cached.length > 0) {
+          setRooms(cached);
+          setLoadingRooms(false);
+        }
       }
-    }
-    loadRooms();
+      loadRooms();
+    };
+    initRooms();
   }, [loadRooms, user?._id]);
 
   // Debounced version — batches rapid socket events into one API call
