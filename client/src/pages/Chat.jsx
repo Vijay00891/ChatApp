@@ -175,6 +175,7 @@ export default function Chat() {
       >
         {selectedRoom ? (
           <ChatWindow 
+            key={selectedRoom._id}
             room={selectedRoom} 
             onBack={handleBack} 
             onDeleteRoom={handleDeleteRoom}
