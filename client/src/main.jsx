@@ -6,6 +6,16 @@ import './index.css'
 import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { SocketProvider } from './context/SocketContext.jsx'
+import { registerSW } from 'virtual:pwa-register'
+
+const updateSW = registerSW({
+  onNeedRefresh() {
+    // Optionally prompt user to refresh for new update
+  },
+  onOfflineReady() {
+    console.log('App is ready to work offline');
+  },
+})
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
