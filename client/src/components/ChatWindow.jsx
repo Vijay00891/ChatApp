@@ -253,6 +253,10 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
     setPage(1);
     setHasMore(true);
     setLoadingMore(false);
+    
+    // Immediately clear previous chat's messages to prevent glitch
+    setMessages([]);
+    setLoading(true);
 
     let isMounted = true;
 
@@ -265,11 +269,6 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
           setLoading(false);
           hasCached = true;
         }
-      }
-
-      if (!hasCached && isMounted) {
-        setMessages([]);
-        setLoading(true);
       }
 
       if (!isMounted) return;
