@@ -296,6 +296,19 @@ const socketHandler = (io) => {
       }
     });
 
+    // ── delete_message ────────────────────────────────────────────────────────
+    socket.on('delete_message', async ({ messageId, roomId }) => {
+      try {
+        const message = await Message.findById(messageId);
+        if (message && message.senderId.toString() === userId) {
+          await Message.findByIdAndDelete(messageId);
+          io.to(roomId).emit('message_deleted', { messageId, roomId });
+        }
+      } catch (err) {
+        console.error('Delete message error:', err);
+      }
+    });
+
     // ── disconnect ────────────────────────────────────────────────────────────
     socket.on('disconnect', async () => {
       console.log(`❌ User disconnected: ${socket.user.name}`);

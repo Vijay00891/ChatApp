@@ -447,6 +447,10 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
       );
     });
 
+    on('message_deleted', instanceId, (data) => {
+      setMessages((prev) => prev.filter((m) => m._id !== data.messageId));
+    });
+
     on('room_updated', instanceId, (data) => {
       if (data.roomId === room._id) {
         // Only fetch this specific room instead of all rooms — Sidebar handles the full refresh
@@ -573,6 +577,11 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
   const handleReply = useCallback((message) => {
     setReplyingTo(message);
   }, []);
+
+  const handleDeleteMessage = useCallback((messageId) => {
+    emit('delete_message', { messageId, roomId: room._id });
+    setMessages((prev) => prev.filter((m) => m._id !== messageId));
+  }, [emit, room?._id]);
 
   const items = groupByDate(messages);
   let msgIdx = -1;
@@ -975,6 +984,7 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
                 message={item.value}
                 prevMessage={prevMsg}
                 onReply={handleReply}
+                onDelete={handleDeleteMessage}
               />
             );
           })}

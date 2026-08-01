@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, memo } from 'react';
-import { Check, CheckCheck, FileText, X, ChevronDown, Copy, Reply, Smile } from 'lucide-react';
+import { Check, CheckCheck, FileText, X, ChevronDown, Copy, Reply, Smile, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 
@@ -36,7 +36,7 @@ function isVideoUrl(url) {
   return false;
 }
 
-const MessageBubble = memo(function MessageBubble({ message, prevMessage, onReply }) {
+const MessageBubble = memo(function MessageBubble({ message, prevMessage, onReply, onDelete }) {
   const { user } = useAuth();
   const { emit } = useSocket();
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -176,6 +176,14 @@ const MessageBubble = memo(function MessageBubble({ message, prevMessage, onRepl
               >
                 <Copy size={16} className="text-subtle-text" /> Copy
               </button>
+              {isMine && (
+                <button 
+                  onClick={() => { onDelete?.(message._id); setShowMenu(false); }}
+                  className="w-full text-left px-4 py-2 hover:bg-hover-bg text-sm text-error flex items-center gap-3 transition-colors"
+                >
+                  <Trash2 size={16} className="text-error" /> Delete
+                </button>
+              )}
             </div>
           )}
 
