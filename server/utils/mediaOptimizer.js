@@ -11,25 +11,20 @@ const path = require('path');
 
 ffmpeg.setFfmpegPath(ffmpegStatic);
 
+const cloudinary = require('cloudinary').v2;
+
 // ── Cloudinary unsigned upload ────────────────────────────────────────────────
 async function uploadToCloudinaryUnsigned(filePath, cloudName, uploadPreset) {
-  const fileBuffer = fs.readFileSync(filePath);
-  const blob = new Blob([fileBuffer]);
-
-  const formData = new FormData();
-  formData.append('file', blob, path.basename(filePath));
-  formData.append('upload_preset', uploadPreset);
-
-  const res = await fetch(
-    `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
-    { method: 'POST', body: formData }
-  );
-
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error?.message || 'Cloudinary upload failed');
+  cloudinary.config({ cloud_name: cloudName });
+  
+  try {
+    const result = await cloudinary.uploader.unsigned_upload(filePath, uploadPreset, {
+      resource_type: 'auto'
+    });
+    return result.secure_url;
+  } catch (err) {
+    throw new Error(err.message || 'Cloudinary upload failed');
   }
-  return data.secure_url;
 }
 
 // ── Upload helper with local storage fallback ────────────────────────────────
