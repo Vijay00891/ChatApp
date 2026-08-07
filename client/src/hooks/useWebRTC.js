@@ -26,6 +26,7 @@ export function useWebRTC() {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const pendingOfferRef = useRef(null);
+  const pendingCandidates = useRef([]);
   const callTimerRef = useRef(null);
   const remoteUserRef = useRef(null);
 
@@ -120,6 +121,7 @@ export function useWebRTC() {
     setIsCameraOn(true);
     setCallDuration(0);
     remoteUserRef.current = null;
+    pendingCandidates.current = [];
   }, []);
 
   const startCallTimer = useCallback(() => {
@@ -178,6 +180,16 @@ export function useWebRTC() {
       await pc.setRemoteDescription(new RTCSessionDescription(pendingOffer));
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
+
+      // Process any ICE candidates that arrived before the remote description was set
+      for (const candidate of pendingCandidates.current) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (e) {
+          console.warn('Queue Add ICE candidate error:', e);
+        }
+      }
+      pendingCandidates.current = [];
 
       emit('call:accept', {
         callerId: remoteUser._id,
@@ -253,6 +265,16 @@ export function useWebRTC() {
           await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(answer));
           setCallState('connected');
           startCallTimer();
+          
+          // Process any ICE candidates that arrived before the remote description was set
+          for (const candidate of pendingCandidates.current) {
+            try {
+              await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+            } catch (e) {
+              console.warn('Queue Add ICE candidate error:', e);
+            }
+          }
+          pendingCandidates.current = [];
         }
       } catch (err) {
         console.error('Set remote description error:', err);
@@ -273,8 +295,10 @@ export function useWebRTC() {
 
     const handleIceCandidate = async ({ candidate }) => {
       try {
-        if (peerConnectionRef.current && candidate) {
+        if (peerConnectionRef.current && peerConnectionRef.current.remoteDescription && candidate) {
           await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+        } else if (candidate) {
+          pendingCandidates.current.push(candidate);
         }
       } catch (err) {
         console.warn('Add ICE candidate error:', err);

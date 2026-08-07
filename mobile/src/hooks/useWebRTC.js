@@ -37,6 +37,7 @@ export function useWebRTC() {
   const localStreamRef = useRef(null);
   const remoteStreamRef = useRef(null);
   const pendingOfferRef = useRef(null);
+  const pendingCandidates = useRef([]);
   const callTimerRef = useRef(null);
   const remoteUserRef = useRef(null);
 
@@ -134,6 +135,7 @@ export function useWebRTC() {
     setIsCameraOn(true);
     setCallDuration(0);
     remoteUserRef.current = null;
+    pendingCandidates.current = [];
   }, []);
 
   const startCallTimer = useCallback(() => {
@@ -193,6 +195,15 @@ export function useWebRTC() {
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
+      for (const candidate of pendingCandidates.current) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (e) {
+          console.warn('Queue Add ICE candidate error:', e);
+        }
+      }
+      pendingCandidates.current = [];
+
       emit('call:accept', {
         callerId: remoteUser._id,
         answer
@@ -213,11 +224,11 @@ export function useWebRTC() {
   }, [remoteUser, emit, cleanup]);
 
   const endCall = useCallback(() => {
-    if (remoteUser) {
-      emit('call:end', { targetId: remoteUser._id });
+    if (remoteUserRef.current) {
+      emit('call:end', { targetId: remoteUserRef.current._id });
     }
     cleanup();
-  }, [remoteUser, emit, cleanup]);
+  }, [emit, cleanup]);
 
   const toggleMic = useCallback(() => {
     if (localStreamRef.current) {
@@ -240,7 +251,8 @@ export function useWebRTC() {
   }, []);
 
   useEffect(() => {
-    const handleCallIncoming = ({ caller, callType: type, offer }) => {
+    const handleCallIncoming = ({ callerId, callerName, callerAvatar, callType: type, offer }) => {
+      const caller = { _id: callerId, username: callerName, avatar: callerAvatar };
       setRemoteUser(caller);
       remoteUserRef.current = caller;
       setCallType(type);
@@ -254,6 +266,15 @@ export function useWebRTC() {
           await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(answer));
           setCallState('connected');
           startCallTimer();
+          
+          for (const candidate of pendingCandidates.current) {
+            try {
+              await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+            } catch (e) {
+              console.warn('Queue Add ICE candidate error:', e);
+            }
+          }
+          pendingCandidates.current = [];
         }
       } catch (err) {
         console.error('Failed to set remote description for answer:', err);
@@ -270,8 +291,10 @@ export function useWebRTC() {
 
     const handleIceCandidate = async ({ candidate }) => {
       try {
-        if (peerConnectionRef.current && candidate) {
+        if (peerConnectionRef.current && peerConnectionRef.current.remoteDescription && candidate) {
           await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+        } else if (candidate) {
+          pendingCandidates.current.push(candidate);
         }
       } catch (err) {
         console.error('Error adding received ice candidate', err);
