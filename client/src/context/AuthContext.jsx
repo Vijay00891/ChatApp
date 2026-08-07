@@ -4,21 +4,37 @@ import { authAPI } from '../lib/api';
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  // Initialize user from localStorage cache for instant rendering (WhatsApp-style)
+  const [user, setUser] = useState(() => {
+    try {
+      const cached = localStorage.getItem('user');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
   const [token, setToken] = useState(() => localStorage.getItem('token'));
-  const [loading, setLoading] = useState(true);
+  // Only show loading spinner if there's no cached user to display
+  const [loading, setLoading] = useState(() => {
+    const hasToken = !!localStorage.getItem('token');
+    const hasUser = !!localStorage.getItem('user');
+    // If we have both cached, skip loading — render immediately
+    return hasToken && !hasUser;
+  });
 
-  // On mount, verify token and load user profile
+  // On mount, verify token in the background (won't block UI if user is cached)
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
     if (!storedToken) {
       setLoading(false);
+      setUser(null);
       return;
     }
     authAPI
       .getMe()
       .then((res) => {
         setUser(res.data.user);
+        localStorage.setItem('user', JSON.stringify(res.data.user));
         setToken(storedToken);
       })
       .catch(() => {
@@ -29,6 +45,7 @@ export function AuthProvider({ children }) {
       })
       .finally(() => setLoading(false));
   }, []);
+
 
   const login = useCallback(async (email, password) => {
     const res = await authAPI.login({ email, password });

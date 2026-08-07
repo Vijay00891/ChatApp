@@ -1,6 +1,6 @@
 import { precacheAndRoute } from 'workbox-precaching';
 import { registerRoute } from 'workbox-routing';
-import { CacheFirst, StaleWhileRevalidate } from 'workbox-strategies';
+import { CacheFirst, StaleWhileRevalidate, NetworkFirst } from 'workbox-strategies';
 import { ExpirationPlugin } from 'workbox-expiration';
 import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 
@@ -34,7 +34,38 @@ registerRoute(
   })
 );
 
-// Listen for push events
+// Cache API responses (rooms list, messages) for instant offline/slow-network loading
+// NetworkFirst: try network, fall back to cache. Keeps data fresh when online.
+registerRoute(
+  ({ url }) => url.pathname.startsWith('/api/rooms'),
+  new NetworkFirst({
+    cacheName: 'api-rooms',
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+      new ExpirationPlugin({
+        maxEntries: 5,
+        maxAgeSeconds: 5 * 60, // 5 minutes
+      }),
+    ],
+    networkTimeoutSeconds: 3, // Fall back to cache after 3s
+  })
+);
+
+registerRoute(
+  ({ url }) => url.pathname.startsWith('/api/messages'),
+  new NetworkFirst({
+    cacheName: 'api-messages',
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+      new ExpirationPlugin({
+        maxEntries: 50,
+        maxAgeSeconds: 2 * 60, // 2 minutes
+      }),
+    ],
+    networkTimeoutSeconds: 3,
+  })
+);
+
 self.addEventListener('push', (event) => {
   let payload = { title: 'New Message', body: 'You have a new message.' };
   if (event.data) {

@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import Avatar from './Avatar';
 import ProfileModal from './ProfileModal';
+import { SidebarSkeletonItems } from './Skeletons';
 import { getCachedRooms, setCachedRooms } from '../lib/cache';
 
 function formatRelativeTime(dateStr) {
@@ -284,12 +285,57 @@ export default function Sidebar({ selectedRoom, onSelectRoom, deletedRooms = {},
     debounceRef.current = setTimeout(() => loadRooms(), 300);
   }, [loadRooms]);
 
-  // Listen for room updates to refresh sidebar (debounced to avoid rapid-fire API calls)
+  // Listen for room updates — update locally where possible, re-fetch only when needed
   useEffect(() => {
+    // These events change room structure/metadata — must re-fetch
     on('room_updated', instanceId, () => debouncedLoadRooms());
-    on('new_message', instanceId, () => debouncedLoadRooms());
-    on('pending_messages', instanceId, () => debouncedLoadRooms());
     on('user_profile_updated', instanceId, () => debouncedLoadRooms());
+
+    // New messages — update lastMessage & unread locally (avoids full API round-trip)
+    on('new_message', instanceId, (msg) => {
+      setRooms((prev) => {
+        const roomExists = prev.some((r) => r._id === msg.roomId);
+        if (!roomExists) {
+          // Unknown room — need to fetch the full list
+          debouncedLoadRooms();
+          return prev;
+        }
+        const isMine = msg.senderId?._id === user?._id || msg.senderId === user?._id;
+        return prev.map((r) =>
+          r._id === msg.roomId
+            ? {
+                ...r,
+                lastMessage: { content: msg.content, createdAt: msg.createdAt },
+                unread: isMine ? r.unread : (r.unread || 0) + (selectedRoom?._id === msg.roomId ? 0 : 1),
+              }
+            : r
+        );
+      });
+    });
+
+    // Pending messages — batch update locally
+    on('pending_messages', instanceId, ({ messages: pending }) => {
+      if (!pending?.length) return;
+      setRooms((prev) => {
+        let updated = [...prev];
+        let needsFetch = false;
+        pending.forEach((msg) => {
+          const idx = updated.findIndex((r) => r._id === msg.roomId);
+          if (idx === -1) {
+            needsFetch = true;
+            return;
+          }
+          updated[idx] = {
+            ...updated[idx],
+            lastMessage: { content: msg.content, createdAt: msg.createdAt },
+            unread: (updated[idx].unread || 0) + (selectedRoom?._id === msg.roomId ? 0 : 1),
+          };
+        });
+        if (needsFetch) debouncedLoadRooms();
+        return updated;
+      });
+    });
+
     return () => {
       off('room_updated', instanceId);
       off('new_message', instanceId);
@@ -297,7 +343,7 @@ export default function Sidebar({ selectedRoom, onSelectRoom, deletedRooms = {},
       off('user_profile_updated', instanceId);
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [instanceId, on, off, debouncedLoadRooms]);
+  }, [instanceId, on, off, debouncedLoadRooms, user?._id, selectedRoom?._id]);
 
   // Search users
   useEffect(() => {
@@ -457,11 +503,7 @@ export default function Sidebar({ selectedRoom, onSelectRoom, deletedRooms = {},
           </>
         ) : (
           <>
-            {loadingRooms && (
-              <div className="flex justify-center items-center mt-8">
-                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              </div>
-            )}
+            {loadingRooms && <SidebarSkeletonItems />}
             {!loadingRooms && processedRooms.length === 0 && (
               <div className="flex flex-col items-center mt-12 gap-3 text-center px-4">
                 <Plus size={32} className="text-border-color" />

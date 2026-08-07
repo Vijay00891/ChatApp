@@ -11,6 +11,7 @@ import InputBar from './InputBar';
 import TypingIndicator from './TypingIndicator';
 import CallUI from './CallUI';
 import ImagePreviewModal from './ImagePreviewModal';
+import { MessageListSkeleton } from './Skeletons';
 import { formatLastSeen } from '../lib/formatLastSeen';
 import { getCachedMessages, setCachedMessages } from '../lib/cache';
 
@@ -953,11 +954,7 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
 
       {/* Messages */}
       <div ref={scrollContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto py-2 scrollbar-hidden">
-        {loading && (
-          <div className="flex justify-center items-center h-full">
-            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          </div>
-        )}
+        {loading && <MessageListSkeleton />}
 
         {!loading && messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-8">
