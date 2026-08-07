@@ -36,6 +36,8 @@ function RootLayoutNav() {
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="(auth)" />
+          <Stack.Screen name="chat" />
+          <Stack.Screen name="new-group" />
           <Stack.Screen name="+not-found" />
         </Stack>
       </WebRTCWrapper>
