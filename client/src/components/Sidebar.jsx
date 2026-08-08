@@ -155,7 +155,18 @@ function UserSearchResult({ user, onStartChat }) {
   );
 }
 
-export default function Sidebar({ selectedRoom, onSelectRoom, deletedRooms = {}, pinnedRooms = [], onPinRoom, onDeleteRoom, mutedRooms = [], onToggleMuteRoom, onToggleArchiveRoom }) {
+export default memo(function Sidebar({ 
+  selectedRoom, 
+  onSelectRoom,
+  deletedRooms = {},
+  pinnedRooms = [],
+  mutedRooms = [],
+  onPinRoom,
+  onDeleteRoom,
+  onToggleMuteRoom,
+  onToggleArchiveRoom,
+  activeTab = 'chats'
+}) {
   const { user, logout } = useAuth();
   const { isConnected, isUserOnline, on, off } = useSocket();
   const [rooms, setRooms] = useState([]);
@@ -230,6 +241,11 @@ export default function Sidebar({ selectedRoom, onSelectRoom, deletedRooms = {},
 
   const processedRooms = rooms
     .filter((room) => {
+      // Filter by tab
+      if (activeTab === 'chats' && room.type !== 'dm') return false;
+      if (activeTab === 'groups' && room.type !== 'group') return false;
+      if (activeTab === 'status') return false; // Handled separately
+
       const deletedAt = deletedRooms[room._id];
       if (deletedAt) {
         const lastMsgTime = room.lastMessage 
@@ -475,41 +491,45 @@ export default function Sidebar({ selectedRoom, onSelectRoom, deletedRooms = {},
 
 
 
-      {/* Status List */}
-      <StatusList />
-
-      {/* Search bar */}
-      <div className="px-3 py-2 mt-1">
-        <div className="relative">
-          <Search
-            size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-subtle-text pointer-events-none"
-          />
-          <input
-            id="search-users"
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search people…"
-            className="w-full pl-9 pr-8 py-2 bg-background border border-border-color
-                       rounded-pill text-sm text-on-surface placeholder-subtle-text
-                       focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20
-                       transition-all duration-200 font-ui"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => { setSearchQuery(''); setSearchResults([]); }}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-subtle-text
-                         hover:text-on-surface transition-colors"
-              aria-label="Clear search"
-            >
-              <X size={14} />
-            </button>
-          )}
+      {/* Status List Tab */}
+      {activeTab === 'status' ? (
+        <div className="flex-1 overflow-y-auto">
+          <StatusList />
         </div>
-      </div>
+      ) : (
+        <>
+          {/* Search bar */}
+          <div className="px-3 py-2 mt-1">
+            <div className="relative">
+              <Search
+                size={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-subtle-text pointer-events-none"
+              />
+              <input
+                id="search-users"
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search people…"
+                className="w-full pl-9 pr-8 py-2 bg-background border border-border-color
+                           rounded-pill text-sm text-on-surface placeholder-subtle-text
+                           focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20
+                           transition-all duration-200 font-ui"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => { setSearchQuery(''); setSearchResults([]); }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-subtle-text
+                             hover:text-on-surface transition-colors"
+                  aria-label="Clear search"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          </div>
 
-      {/* Scrollable list */}
+          {/* Scrollable list */}
       <div className="flex-1 overflow-y-auto px-2 pb-4 scrollbar-hidden">
         {isSearchMode ? (
           <>
@@ -579,6 +599,7 @@ export default function Sidebar({ selectedRoom, onSelectRoom, deletedRooms = {},
           </>
         )}
       </div>
+      )}
 
       {/* Create Group Modal */}
       {showGroupModal && (

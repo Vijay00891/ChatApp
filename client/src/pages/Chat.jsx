@@ -3,6 +3,7 @@ import { MessageSquare } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Sidebar from '../components/Sidebar';
 import ChatWindow from '../components/ChatWindow';
+import NavigationBar from '../components/NavigationBar';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { useNotification } from '../hooks/useNotification';
@@ -35,6 +36,7 @@ export default function Chat() {
   const [selectedRoom, setSelectedRoom] = useState(null);
   // For mobile, track whether the sidebar or chat is shown
   const [mobileView, setMobileView] = useState('sidebar'); // 'sidebar' | 'chat'
+  const [activeTab, setActiveTab] = useState('chats'); // 'chats' | 'groups' | 'status'
 
   const [deletedRooms, setDeletedRooms] = useState({});
   const [pinnedRooms, setPinnedRooms] = useState([]);
@@ -159,13 +161,15 @@ export default function Chat() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      {/* Sidebar — always visible on desktop, conditionally on mobile */}
+    <div className="flex h-[100dvh] overflow-hidden flex-col-reverse md:flex-row bg-background relative">
+      <NavigationBar activeTab={activeTab} onChange={setActiveTab} />
+      
+      {/* Sidebar — conditionally visible on mobile */}
       <div
         className={`
           ${mobileView === 'sidebar' ? 'flex' : 'hidden'}
           md:flex flex-col
-          w-full md:w-80 lg:w-96 shrink-0
+          w-full md:w-80 lg:w-[360px] shrink-0
         `}
       >
         <Sidebar 
@@ -178,6 +182,7 @@ export default function Chat() {
           onDeleteRoom={handleDeleteRoom}
           onToggleMuteRoom={handleToggleMuteRoom}
           onToggleArchiveRoom={handleToggleArchiveRoom}
+          activeTab={activeTab}
         />
       </div>
 
