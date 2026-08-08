@@ -168,8 +168,8 @@ export default function Chat() {
       <div
         className={`
           ${mobileView === 'sidebar' ? 'flex' : 'hidden'}
-          md:flex flex-col
-          w-full md:w-80 lg:w-[360px] shrink-0
+          md:flex flex-col flex-1 min-h-0
+          w-full md:w-80 lg:w-[360px] md:flex-none
         `}
       >
         <Sidebar 
