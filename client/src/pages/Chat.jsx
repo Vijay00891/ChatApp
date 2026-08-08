@@ -6,6 +6,7 @@ import ChatWindow from '../components/ChatWindow';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { useNotification } from '../hooks/useNotification';
+import { roomsAPI } from '../lib/api';
 
 function EmptyState() {
   return (
@@ -119,17 +120,33 @@ export default function Chat() {
     }
   }, [deletedRooms, user?._id, selectedRoom?._id]);
 
-  const handleToggleMuteRoom = useCallback((roomId) => {
+  const handleToggleMuteRoom = useCallback(async (roomId) => {
     if (!user?._id) return;
-    let updated;
-    if (mutedRooms.includes(roomId)) {
-      updated = mutedRooms.filter((id) => id !== roomId);
-    } else {
-      updated = [...mutedRooms, roomId];
+    try {
+      // Optimistic local update
+      let updated;
+      if (mutedRooms.includes(roomId)) {
+        updated = mutedRooms.filter((id) => id !== roomId);
+      } else {
+        updated = [...mutedRooms, roomId];
+      }
+      setMutedRooms(updated);
+      localStorage.setItem(`muted_rooms_${user._id}`, JSON.stringify(updated));
+      
+      await roomsAPI.mute(roomId);
+    } catch (err) {
+      console.error('Failed to mute/unmute room', err);
     }
-    localStorage.setItem(`muted_rooms_${user._id}`, JSON.stringify(updated));
-    setMutedRooms(updated);
   }, [mutedRooms, user?._id]);
+
+  const handleToggleArchiveRoom = useCallback(async (roomId) => {
+    if (!user?._id) return;
+    try {
+      await roomsAPI.archive(roomId);
+    } catch (err) {
+      console.error('Failed to archive/unarchive room', err);
+    }
+  }, [user?._id]);
 
   const handleSelectRoom = (room) => {
     setSelectedRoom(room);
@@ -160,6 +177,7 @@ export default function Chat() {
           onPinRoom={handlePinRoom}
           onDeleteRoom={handleDeleteRoom}
           onToggleMuteRoom={handleToggleMuteRoom}
+          onToggleArchiveRoom={handleToggleArchiveRoom}
         />
       </div>
 

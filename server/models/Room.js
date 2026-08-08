@@ -37,6 +37,18 @@ const roomSchema = new mongoose.Schema(
       type: String,
       default: '#1A73E8',
     },
+    mutedBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
+    archivedBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
   },
   { timestamps: true }
 );

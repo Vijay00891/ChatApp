@@ -53,6 +53,7 @@ router.post('/register', authLimiter, async (req, res) => {
         avatar: user.avatar,
         avatarColor: user.avatarColor,
         status: user.status,
+        blockedUsers: user.blockedUsers || [],
       },
     });
   } catch (error) {
@@ -95,6 +96,7 @@ router.post('/login', authLimiter, async (req, res) => {
         avatar: user.avatar,
         avatarColor: user.avatarColor,
         status: user.status,
+        blockedUsers: user.blockedUsers || [],
       },
     });
   } catch (error) {
@@ -105,7 +107,8 @@ router.post('/login', authLimiter, async (req, res) => {
 
 // GET /api/auth/me
 router.get('/me', require('../middleware/authMiddleware'), async (req, res) => {
-  res.json({ user: req.user });
+  const user = await User.findById(req.user._id).select('-password');
+  res.json({ user });
 });
 
 module.exports = router;

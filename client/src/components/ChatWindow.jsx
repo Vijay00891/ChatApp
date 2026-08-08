@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback, useId } from 'react';
-import { ArrowLeft, Phone, Video, MoreVertical, X, Edit2, Check, Camera, Trash2, VolumeX, User, UserPlus } from 'lucide-react';
+import { ArrowLeft, Phone, Video, MoreVertical, X, Edit2, Check, Camera, Trash2, VolumeX, User, UserPlus, Ban } from 'lucide-react';
 import { messagesAPI, roomsAPI, usersAPI } from '../lib/api';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
@@ -87,6 +87,24 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
   const peer = getPeerFromRoom(room, user?._id);
   const peerOnline = peer ? isUserOnline(peer?._id ?? peer) : false;
   const roomName = room?.name || (room?.type === 'group' ? 'Group Chat' : peer?.name ?? 'Chat');
+  const { updateUser } = useAuth();
+  
+  const isBlocked = room?.type === 'dm' && user?.blockedUsers?.includes(peer?._id);
+
+  const handleBlockUser = async () => {
+    try {
+      if (isBlocked) {
+        await usersAPI.unblock(peer._id);
+        updateUser({ blockedUsers: user.blockedUsers.filter(id => id !== peer._id) });
+      } else {
+        await usersAPI.block(peer._id);
+        updateUser({ blockedUsers: [...(user.blockedUsers || []), peer._id] });
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Failed to update block status');
+    }
+  };
 
   // Chat Info / Group Details Modal State
   const [showInfoModal, setShowInfoModal] = useState(false);
@@ -879,7 +897,9 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
               {mutedRooms.includes(room._id) && <VolumeX size={13} className="text-subtle-text shrink-0" />}
             </h2>
             <p className="text-xs text-subtle-text leading-tight">
-              {peerTyping ? (
+              {isBlocked ? (
+                <span></span>
+              ) : peerTyping ? (
                 <span className="text-primary animate-pulse">typing…</span>
               ) : (
                 formatLastSeen(
@@ -939,6 +959,19 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
                   <VolumeX size={14} className="text-subtle-text" />
                   <span>{mutedRooms.includes(room._id) ? 'Unmute notifications' : 'Mute notifications'}</span>
                 </button>
+                {room?.type === 'dm' && (
+                  <button
+                    onClick={() => {
+                      setHeaderMenuOpen(false);
+                      handleBlockUser();
+                    }}
+                    className="w-full text-left px-3 py-2.5 hover:bg-hover-bg text-error 
+                               flex items-center gap-2 transition-colors duration-150 font-medium border-t border-border-color"
+                  >
+                    <Ban size={14} className="text-error" />
+                    <span>{isBlocked ? 'Unblock contact' : 'Block contact'}</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -984,13 +1017,25 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
       </div>
 
       {/* Input */}
-      <InputBar 
-        roomId={room?._id} 
-        onSend={handleSend} 
-        disabled={!room?._id} 
-        replyingTo={replyingTo}
-        onCancelReply={() => setReplyingTo(null)}
-      />
+      {isBlocked ? (
+        <div className="p-4 bg-surface border-t border-border-color text-center text-sm text-subtle-text">
+          You blocked this contact.{' '}
+          <button 
+            onClick={handleBlockUser} 
+            className="text-primary hover:underline cursor-pointer font-medium transition-colors"
+          >
+            Tap to unblock.
+          </button>
+        </div>
+      ) : (
+        <InputBar 
+          roomId={room?._id} 
+          onSend={handleSend} 
+          disabled={!room?._id} 
+          replyingTo={replyingTo}
+          onCancelReply={() => setReplyingTo(null)}
+        />
+      )}
 
       {/* Call UI */}
       <CallUI

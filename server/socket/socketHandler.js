@@ -92,15 +92,22 @@ const socketHandler = (io) => {
       try {
         const { roomId, content, type = 'text', replyTo = null, tempId = null } = data;
 
-        const room = await Room.findOne({ _id: roomId, members: userId }).lean();
+        const room = await Room.findOne({ _id: roomId, members: userId }).populate('members', 'blockedUsers').lean();
         if (!room) return socket.emit('error', { message: 'Room not found.' });
+
+        if (room.type === 'dm') {
+          const peer = room.members.find(m => m._id.toString() !== userId);
+          if (peer && peer.blockedUsers && peer.blockedUsers.map(id => id.toString()).includes(userId)) {
+            return socket.emit('error', { message: 'Cannot send message to this user.' });
+          }
+        }
 
         const messageId = new mongoose.Types.ObjectId();
         const createdAt = new Date();
 
         const recipientIds = room.members
-          .map((m) => m.toString())
-          .filter((id) => id !== userId);
+          .filter((m) => m._id.toString() !== userId)
+          .map((m) => m._id.toString());
 
         const onlineRecipientIds = recipientIds.filter((recipientId) =>
           onlineUsers.has(recipientId)
@@ -351,11 +358,18 @@ const socketHandler = (io) => {
     });
 
     // ── WebRTC call events ────────────────────────────────────────────────────
-    socket.on('call:initiate', ({ receiverId, callType, offer }) => {
+    socket.on('call:initiate', async ({ receiverId, callType, offer }) => {
       if (!onlineUsers.has(receiverId)) {
         socket.emit('call:unavailable', { message: 'User is not online' });
         return;
       }
+      
+      try {
+        const receiver = await User.findById(receiverId).select('blockedUsers').lean();
+        if (receiver && receiver.blockedUsers && receiver.blockedUsers.map(id => id.toString()).includes(userId)) {
+          return socket.emit('call:unavailable', { message: 'User is unavailable' });
+        }
+      } catch(e) {}
       
       io.to(receiverId).emit('call:incoming', {
         callerId: userId,

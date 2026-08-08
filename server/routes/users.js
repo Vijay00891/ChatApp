@@ -122,4 +122,41 @@ router.put('/profile', authMiddleware, async (req, res) => {
   }
 });
 
+// POST /api/users/block/:id — Block a user
+router.post('/block/:id', authMiddleware, async (req, res) => {
+  try {
+    const userToBlock = req.params.id;
+    if (userToBlock === req.user._id) {
+      return res.status(400).json({ message: 'Cannot block yourself' });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user.blockedUsers.includes(userToBlock)) {
+      user.blockedUsers.push(userToBlock);
+      await user.save();
+    }
+
+    res.json({ message: 'User blocked successfully', blockedUsers: user.blockedUsers });
+  } catch (error) {
+    console.error('Error blocking user:', error);
+    res.status(500).json({ message: 'Server error blocking user.' });
+  }
+});
+
+// POST /api/users/unblock/:id — Unblock a user
+router.post('/unblock/:id', authMiddleware, async (req, res) => {
+  try {
+    const userToUnblock = req.params.id;
+    const user = await User.findById(req.user._id);
+    
+    user.blockedUsers = user.blockedUsers.filter(id => id.toString() !== userToUnblock);
+    await user.save();
+
+    res.json({ message: 'User unblocked successfully', blockedUsers: user.blockedUsers });
+  } catch (error) {
+    console.error('Error unblocking user:', error);
+    res.status(500).json({ message: 'Server error unblocking user.' });
+  }
+});
+
 module.exports = router;

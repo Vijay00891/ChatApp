@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useId, useMemo, useRef, memo } from 'react';
-import { Search, X, Plus, MessageSquare, LogOut, Wifi, WifiOff, MoreVertical, Pin, Trash2, VolumeX } from 'lucide-react';
+import { Search, X, Plus, MessageSquare, LogOut, Wifi, WifiOff, MoreVertical, Pin, Trash2, VolumeX, Archive } from 'lucide-react';
 import { roomsAPI, usersAPI } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
@@ -19,7 +19,7 @@ function formatRelativeTime(dateStr) {
   return new Date(dateStr).toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
-const RoomItem = memo(function RoomItem({ room, currentUserId, isSelected, onClick, isOnline, onPin, onDelete, isPinned, isMuted }) {
+const RoomItem = memo(function RoomItem({ room, currentUserId, isSelected, onClick, isOnline, onPin, onDelete, isPinned, isMuted, onToggleArchive, isArchived }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const peer =
     room.type === 'dm'
@@ -117,6 +117,18 @@ const RoomItem = memo(function RoomItem({ room, currentUserId, isSelected, onCli
                     <Trash2 size={13} />
                     <span>Delete</span>
                   </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onToggleArchive) onToggleArchive(room._id);
+                      setMenuOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-2 hover:bg-hover-bg text-on-surface 
+                               flex items-center gap-2 transition-colors duration-150 border-t border-border-color"
+                  >
+                    <Archive size={13} className="text-subtle-text" />
+                    <span>{isArchived ? 'Unarchive' : 'Archive'}</span>
+                  </button>
                 </div>
               )}
             </div>
@@ -142,13 +154,14 @@ function UserSearchResult({ user, onStartChat }) {
   );
 }
 
-export default function Sidebar({ selectedRoom, onSelectRoom, deletedRooms = {}, pinnedRooms = [], onPinRoom, onDeleteRoom, mutedRooms = [], onToggleMuteRoom }) {
+export default function Sidebar({ selectedRoom, onSelectRoom, deletedRooms = {}, pinnedRooms = [], onPinRoom, onDeleteRoom, mutedRooms = [], onToggleMuteRoom, onToggleArchiveRoom }) {
   const { user, logout } = useAuth();
   const { isConnected, isUserOnline, on, off } = useSocket();
   const [rooms, setRooms] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const [loadingRooms, setLoadingRooms] = useState(true);
   const instanceId = useId();
 
@@ -217,11 +230,16 @@ export default function Sidebar({ selectedRoom, onSelectRoom, deletedRooms = {},
   const processedRooms = rooms
     .filter((room) => {
       const deletedAt = deletedRooms[room._id];
-      if (!deletedAt) return true;
-      const lastMsgTime = room.lastMessage 
-        ? new Date(room.lastMessage.createdAt).getTime() 
-        : room.createdAt ? new Date(room.createdAt).getTime() : 0;
-      return lastMsgTime > deletedAt;
+      if (deletedAt) {
+        const lastMsgTime = room.lastMessage 
+          ? new Date(room.lastMessage.createdAt).getTime() 
+          : room.createdAt ? new Date(room.createdAt).getTime() : 0;
+        if (lastMsgTime <= deletedAt) return false;
+      }
+      
+      const isArchived = room.archivedBy?.includes(user?._id);
+      if (showArchived) return isArchived;
+      return !isArchived;
     })
     .sort((a, b) => {
       const aPinned = pinnedRooms.includes(a._id);
@@ -504,12 +522,31 @@ export default function Sidebar({ selectedRoom, onSelectRoom, deletedRooms = {},
         ) : (
           <>
             {loadingRooms && <SidebarSkeletonItems />}
+            
+            {/* Archived Toggle */}
+            {!loadingRooms && rooms.some(r => r.archivedBy?.includes(user?._id)) && (
+              <button 
+                onClick={() => setShowArchived(!showArchived)}
+                className="w-full flex items-center gap-3 px-3 py-2 text-sm text-subtle-text hover:bg-hover-bg transition-colors border-b border-border-color mb-1"
+              >
+                <Archive size={16} />
+                <span className="font-medium">{showArchived ? 'Back to Messages' : 'Archived'}</span>
+              </button>
+            )}
+
             {!loadingRooms && processedRooms.length === 0 && (
               <div className="flex flex-col items-center mt-12 gap-3 text-center px-4">
-                <Plus size={32} className="text-border-color" />
-                <p className="text-xs text-subtle-text">
-                  Search for someone above to start chatting
-                </p>
+                {showArchived ? (
+                  <>
+                    <Archive size={32} className="text-border-color" />
+                    <p className="text-xs text-subtle-text">No archived chats</p>
+                  </>
+                ) : (
+                  <>
+                    <Plus size={32} className="text-border-color" />
+                    <p className="text-xs text-subtle-text">Search for someone above to start chatting</p>
+                  </>
+                )}
               </div>
             )}
             {processedRooms.map((room) => {
@@ -529,7 +566,9 @@ export default function Sidebar({ selectedRoom, onSelectRoom, deletedRooms = {},
                   onPin={onPinRoom}
                   onDelete={onDeleteRoom}
                   isPinned={pinnedRooms.includes(room._id)}
-                  isMuted={mutedRooms.includes(room._id)}
+                  isMuted={mutedRooms.includes(room._id) || room.mutedBy?.includes(user?._id)}
+                  isArchived={room.archivedBy?.includes(user?._id)}
+                  onToggleArchive={onToggleArchiveRoom}
                 />
               );
             })}

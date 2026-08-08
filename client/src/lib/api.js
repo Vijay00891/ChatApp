@@ -41,18 +41,22 @@ export const authAPI = {
 // --- Users ---
 export const usersAPI = {
   search: (query) => api.get(`/users/search?q=${encodeURIComponent(query)}`),
-  getAll: () => api.get('/users'),
   updateProfile: (data) => api.put('/users/profile', data),
+  block: (userId) => api.post(`/users/block/${userId}`),
+  unblock: (userId) => api.post(`/users/unblock/${userId}`),
 };
 
 // --- Rooms ---
 export const roomsAPI = {
   getAll: () => api.get('/rooms'),
-  createDM: (userId) => api.post('/rooms/dm', { targetUserId: userId }),
-  createGroup: (name, memberIds) => api.post('/rooms/group', { name, memberIds }),
-  update: (roomId, data) => api.put(`/rooms/${roomId}`, data),
-  addMember: (roomId, userId) => api.post(`/rooms/${roomId}/members`, { userId }),
-  removeMember: (roomId, userId) => api.delete(`/rooms/${roomId}/members/${userId}`),
+  getById: (id) => api.get(`/rooms/${id}`),
+  createDM: (memberId) => api.post('/rooms/dm', { memberId }),
+  createGroup: (data) => api.post('/rooms/group', data),
+  updateGroup: (id, data) => api.put(`/rooms/group/${id}`, data),
+  addMember: (id, memberId) => api.post(`/rooms/group/${id}/add`, { memberId }),
+  removeMember: (id, memberId) => api.post(`/rooms/group/${id}/remove`, { memberId }),
+  archive: (id) => api.post(`/rooms/${id}/archive`),
+  mute: (id) => api.post(`/rooms/${id}/mute`),
 };
 
 // --- Notifications ---

@@ -324,4 +324,62 @@ router.get('/:id', authMiddleware, async (req, res) => {
   }
 });
 
+// POST /api/rooms/:id/archive
+router.post('/:id/archive', authMiddleware, async (req, res) => {
+  try {
+    const room = await Room.findOne({ _id: req.params.id, members: req.user._id });
+    if (!room) return res.status(404).json({ message: 'Room not found.' });
+
+    const userId = req.user._id.toString();
+    const isArchived = room.archivedBy.includes(userId);
+
+    if (isArchived) {
+      room.archivedBy = room.archivedBy.filter(id => id.toString() !== userId);
+    } else {
+      room.archivedBy.push(userId);
+    }
+    
+    await room.save();
+    
+    const io = req.app.get('io');
+    if (io) {
+      io.to(userId).emit('room_updated', { roomId: room._id });
+    }
+
+    res.json({ archived: !isArchived, roomId: room._id });
+  } catch (error) {
+    console.error('Archive room error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+});
+
+// POST /api/rooms/:id/mute
+router.post('/:id/mute', authMiddleware, async (req, res) => {
+  try {
+    const room = await Room.findOne({ _id: req.params.id, members: req.user._id });
+    if (!room) return res.status(404).json({ message: 'Room not found.' });
+
+    const userId = req.user._id.toString();
+    const isMuted = room.mutedBy.includes(userId);
+
+    if (isMuted) {
+      room.mutedBy = room.mutedBy.filter(id => id.toString() !== userId);
+    } else {
+      room.mutedBy.push(userId);
+    }
+    
+    await room.save();
+    
+    const io = req.app.get('io');
+    if (io) {
+      io.to(userId).emit('room_updated', { roomId: room._id });
+    }
+
+    res.json({ muted: !isMuted, roomId: room._id });
+  } catch (error) {
+    console.error('Mute room error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+});
+
 module.exports = router;

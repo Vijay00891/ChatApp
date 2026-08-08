@@ -1,0 +1,2340 @@
+[{
+  "_id": {
+    "$oid": "6a0d4da6df40228a27c1cd2c"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a0d4da6df40228a27c1cd27"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-05-20T05:59:02.869Z"
+  },
+  "updatedAt": {
+    "$date": "2026-05-20T05:59:02.869Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a0d5143c67ee6df70ecd797"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a0d5142c67ee6df70ecd791"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-05-20T06:14:27.754Z"
+  },
+  "updatedAt": {
+    "$date": "2026-05-20T06:14:27.754Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a0d5a6ac3da2891df839077"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a0d5a69c3da2891df839072"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-05-20T06:53:30.580Z"
+  },
+  "updatedAt": {
+    "$date": "2026-05-20T06:53:30.580Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a0d94b12544be9541af5d9f"
+  },
+  "recipientId": {
+    "$oid": "6a0c5d59862ed9a8ae12a321"
+  },
+  "messageId": {
+    "$oid": "6a0d94b02544be9541af5d9a"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-05-20T11:02:09.633Z"
+  },
+  "updatedAt": {
+    "$date": "2026-05-20T11:02:09.633Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a0f0f928c9dac7eff9ced3b"
+  },
+  "recipientId": {
+    "$oid": "6a0b74d0ee12ca7e059a3026"
+  },
+  "messageId": {
+    "$oid": "6a0f0f918c9dac7eff9ced36"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-05-21T13:58:42.188Z"
+  },
+  "updatedAt": {
+    "$date": "2026-05-21T13:58:42.188Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a0f0f938c9dac7eff9ced48"
+  },
+  "recipientId": {
+    "$oid": "6a0b74d0ee12ca7e059a3026"
+  },
+  "messageId": {
+    "$oid": "6a0f0f928c9dac7eff9ced3e"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-05-21T13:58:43.486Z"
+  },
+  "updatedAt": {
+    "$date": "2026-05-21T13:58:43.486Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a17ceba35c5b8b7cd5672b2"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a17ceb935c5b8b7cd5672ad"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-05-28T05:12:26.548Z"
+  },
+  "updatedAt": {
+    "$date": "2026-05-28T05:12:26.548Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1d85b7c59bae3ee399527e"
+  },
+  "recipientId": {
+    "$oid": "6a0c4587187dd7880f9008ed"
+  },
+  "messageId": {
+    "$oid": "6a1d85b6c59bae3ee3995279"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-01T13:14:31.523Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-01T13:14:31.523Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1d877fc59bae3ee39952c7"
+  },
+  "recipientId": {
+    "$oid": "6a0b74d0ee12ca7e059a3026"
+  },
+  "messageId": {
+    "$oid": "6a1d877ec59bae3ee39952c2"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-01T13:22:07.561Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-01T13:22:07.561Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1dabdc0569203e1347fe4d"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1dabdb0569203e1347fe46"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-01T15:57:16.769Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-01T15:57:16.769Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1dabea0569203e1347fe7d"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1dabe90569203e1347fe76"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-01T15:57:30.097Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-01T15:57:30.097Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1db71a70e6489a2191782c"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1db71970e6489a21917826"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-01T16:45:14.855Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-01T16:45:14.855Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1db77b70e6489a219178e2"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1db77a70e6489a219178db"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-01T16:46:51.249Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-01T16:46:51.249Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fa976e9fa6e219aff653c"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fa975e9fa6e219aff6536"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T04:11:34.954Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T04:11:34.954Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fa976e9fa6e219aff653d"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fa975e9fa6e219aff6536"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T04:11:34.954Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T04:11:34.954Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fa97de9fa6e219aff6554"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fa97ce9fa6e219aff654a"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T04:11:41.758Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T04:11:41.758Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fa97de9fa6e219aff6553"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fa97ce9fa6e219aff654a"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T04:11:41.758Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T04:11:41.758Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fa982e9fa6e219aff6567"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fa981e9fa6e219aff655c"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T04:11:46.853Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T04:11:46.853Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fa982e9fa6e219aff6566"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fa981e9fa6e219aff655c"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T04:11:46.853Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T04:11:46.853Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fa98be9fa6e219aff6581"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fa98ae9fa6e219aff6579"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T04:11:56.154Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T04:11:56.154Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fa98be9fa6e219aff6580"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fa98ae9fa6e219aff6579"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T04:11:56.154Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T04:11:56.154Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb13c08df8a1dac5cd559"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb13a08df8a1dac5cd553"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T04:44:44.495Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T04:44:44.495Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb13c08df8a1dac5cd55a"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb13a08df8a1dac5cd553"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T04:44:44.495Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T04:44:44.495Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb14c08df8a1dac5cd58e"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb14a08df8a1dac5cd584"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T04:45:00.371Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T04:45:00.371Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb14c08df8a1dac5cd58f"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb14a08df8a1dac5cd584"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T04:45:00.372Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T04:45:00.372Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb1c908df8a1dac5cd61b"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb1c708df8a1dac5cd606"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T04:47:05.271Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T04:47:05.271Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb1c908df8a1dac5cd61c"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb1c708df8a1dac5cd606"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T04:47:05.271Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T04:47:05.271Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb1c908df8a1dac5cd61e"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb1c508df8a1dac5cd5fe"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T04:47:05.472Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T04:47:05.472Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb1c908df8a1dac5cd61f"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb1c508df8a1dac5cd5fe"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T04:47:05.472Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T04:47:05.472Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb558a82fcfcf1e2084e3"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb555a82fcfcf1e2084cf"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:16.361Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:16.361Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb558a82fcfcf1e2084e4"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb555a82fcfcf1e2084cf"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:16.361Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:16.361Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb55aa82fcfcf1e2084f9"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb558a82fcfcf1e2084e8"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:18.757Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:18.757Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb55aa82fcfcf1e2084f8"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb558a82fcfcf1e2084e8"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:18.756Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:18.756Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb55ba82fcfcf1e2084fe"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb559a82fcfcf1e2084ea"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:19.261Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:19.261Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb55ba82fcfcf1e2084ff"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb559a82fcfcf1e2084ea"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:19.261Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:19.261Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb55da82fcfcf1e208517"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb55ba82fcfcf1e208501"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:21.560Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:21.560Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb55da82fcfcf1e208516"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb55ba82fcfcf1e208501"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:21.560Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:21.560Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb55ea82fcfcf1e208526"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb55ca82fcfcf1e20850b"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:22.758Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:22.758Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb55ea82fcfcf1e208525"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb55ca82fcfcf1e20850b"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:22.758Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:22.758Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb55fa82fcfcf1e20852e"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb55ca82fcfcf1e20850d"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:23.163Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:23.163Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb55fa82fcfcf1e20852d"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb55ca82fcfcf1e20850d"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:23.163Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:23.163Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb560a82fcfcf1e20853a"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb55da82fcfcf1e20851b"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:24.558Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:24.558Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb560a82fcfcf1e20853b"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb55da82fcfcf1e20851b"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:24.558Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:24.558Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb564a82fcfcf1e208564"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb561a82fcfcf1e208540"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:28.370Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:28.370Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb564a82fcfcf1e208565"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb561a82fcfcf1e208540"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:28.370Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:28.370Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb565a82fcfcf1e20857c"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb560a82fcfcf1e20853d"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:29.958Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:29.958Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb565a82fcfcf1e20857d"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb560a82fcfcf1e20853d"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:29.958Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:29.958Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb567a82fcfcf1e208594"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb562a82fcfcf1e20854d"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:31.357Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:31.357Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb567a82fcfcf1e208595"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb562a82fcfcf1e20854d"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:31.357Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:31.357Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb56ca82fcfcf1e2085dd"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb563a82fcfcf1e208559"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:36.360Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:36.360Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb56ca82fcfcf1e2085dc"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb563a82fcfcf1e208559"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:36.359Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:36.359Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb57ba82fcfcf1e20865e"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb564a82fcfcf1e20856d"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:51.971Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:51.971Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb57ba82fcfcf1e20865d"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb564a82fcfcf1e20856d"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:51.971Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:51.971Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb57ca82fcfcf1e208666"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb564a82fcfcf1e20855d"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:52.662Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:52.662Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb57ca82fcfcf1e208667"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb564a82fcfcf1e20855d"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:52.662Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:52.662Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb581a82fcfcf1e20869d"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb567a82fcfcf1e208598"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:57.560Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:57.560Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb581a82fcfcf1e20869e"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb567a82fcfcf1e208598"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:57.560Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:57.560Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb582a82fcfcf1e2086ac"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb567a82fcfcf1e208592"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:58.559Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:58.559Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb582a82fcfcf1e2086ad"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb567a82fcfcf1e208592"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:02:58.559Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:02:58.559Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb587a82fcfcf1e2086de"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb569a82fcfcf1e2085ae"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:03.460Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:03.460Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb587a82fcfcf1e2086dd"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb569a82fcfcf1e2085ae"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:03.460Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:03.460Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb589a82fcfcf1e2086ec"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb56aa82fcfcf1e2085cd"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:05.058Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:05.058Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb589a82fcfcf1e2086ed"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb56aa82fcfcf1e2085cd"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:05.058Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:05.058Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb58aa82fcfcf1e2086fb"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb569a82fcfcf1e2085ba"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:06.062Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:06.062Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb58aa82fcfcf1e2086fa"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb569a82fcfcf1e2085ba"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:06.061Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:06.061Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb58ba82fcfcf1e208711"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb56ca82fcfcf1e2085e1"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:07.462Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:07.462Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb58ba82fcfcf1e208710"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb56ca82fcfcf1e2085e1"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:07.462Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:07.462Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb58ba82fcfcf1e208714"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb56ba82fcfcf1e2085d5"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:07.465Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:07.465Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb58ba82fcfcf1e208713"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb56ba82fcfcf1e2085d5"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:07.465Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:07.465Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb58ea82fcfcf1e20872c"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb571a82fcfcf1e2085fd"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:10.265Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:10.265Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb58ea82fcfcf1e20872d"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb571a82fcfcf1e2085fd"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:10.265Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:10.265Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb58ea82fcfcf1e20872a"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb56ea82fcfcf1e2085ed"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:10.263Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:10.263Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb58ea82fcfcf1e208729"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb56ea82fcfcf1e2085ed"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:10.263Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:10.263Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb58ea82fcfcf1e208737"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb571a82fcfcf1e208600"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:10.465Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:10.465Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb58ea82fcfcf1e208738"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb571a82fcfcf1e208600"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:10.465Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:10.465Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb58ea82fcfcf1e20873e"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb572a82fcfcf1e208605"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:10.561Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:10.561Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb58ea82fcfcf1e20873f"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb572a82fcfcf1e208605"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:10.561Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:10.561Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb58fa82fcfcf1e208746"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb571a82fcfcf1e208603"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:11.068Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:11.068Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb58fa82fcfcf1e208745"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb571a82fcfcf1e208603"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:11.068Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:11.068Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb591a82fcfcf1e208768"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb573a82fcfcf1e208611"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:13.257Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:13.257Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb591a82fcfcf1e208767"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb573a82fcfcf1e208611"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:13.257Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:13.257Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb58ca82fcfcf1e208719"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb56da82fcfcf1e2085e4"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:08.062Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:08.062Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb58ca82fcfcf1e20871a"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb56da82fcfcf1e2085e4"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:08.062Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:08.062Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb592a82fcfcf1e208778"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb56fa82fcfcf1e2085f8"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:14.857Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:14.857Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb592a82fcfcf1e20877a"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb56fa82fcfcf1e2085f8"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:14.857Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:14.857Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb593a82fcfcf1e208785"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb57aa82fcfcf1e208651"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:15.966Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:15.966Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb593a82fcfcf1e208787"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb57aa82fcfcf1e208651"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:15.966Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:15.966Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb594a82fcfcf1e20878a"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb577a82fcfcf1e20862d"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:16.464Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:16.464Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb594a82fcfcf1e20878c"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb577a82fcfcf1e20862d"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:16.464Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:16.464Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb594a82fcfcf1e20878f"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb574a82fcfcf1e208618"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:16.568Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:16.568Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb594a82fcfcf1e208791"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb574a82fcfcf1e208618"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:16.568Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:16.568Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb58ea82fcfcf1e20873b"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb56ea82fcfcf1e2085f0"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:10.560Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:10.560Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb58ea82fcfcf1e20873c"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb56ea82fcfcf1e2085f0"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:10.560Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:10.560Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb596a82fcfcf1e2087a6"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb568a82fcfcf1e2085a6"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:18.062Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:18.062Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb596a82fcfcf1e2087a4"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb568a82fcfcf1e2085a6"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:18.062Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:18.062Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb599a82fcfcf1e2087c8"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb57fa82fcfcf1e20868c"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:21.660Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:21.660Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb599a82fcfcf1e2087c6"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb57fa82fcfcf1e20868c"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:21.659Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:21.659Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb5a7a82fcfcf1e208827"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb575a82fcfcf1e20861e"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:35.265Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:35.265Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb5a7a82fcfcf1e208825"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb575a82fcfcf1e20861e"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:35.265Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:35.265Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb5a7a82fcfcf1e20882b"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb572a82fcfcf1e208607"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:35.957Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:35.957Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb5a7a82fcfcf1e20882d"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb572a82fcfcf1e208607"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:35.957Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:35.957Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb5bca82fcfcf1e2088ac"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb59fa82fcfcf1e2087f7"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:56.560Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:56.560Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb5bca82fcfcf1e2088aa"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb59fa82fcfcf1e2087f7"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:56.560Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:56.560Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb5bea82fcfcf1e2088bc"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb5a6a82fcfcf1e208822"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:58.963Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:58.963Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb5bea82fcfcf1e2088ba"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb5a6a82fcfcf1e208822"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:03:58.963Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:03:58.963Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb5c2a82fcfcf1e2088d7"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a1fb567a82fcfcf1e20859c"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:04:02.261Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:04:02.261Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a1fb5c2a82fcfcf1e2088d9"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a1fb567a82fcfcf1e20859c"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T05:04:02.262Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T05:04:02.262Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a200715f2081ae48042f459"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a200710f2081ae48042f43b"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T10:51:01.546Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T10:51:01.546Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a200715f2081ae48042f45a"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a200710f2081ae48042f43b"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T10:51:01.546Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T10:51:01.546Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a200724f2081ae48042f4cb"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a200721f2081ae48042f4bb"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T10:51:16.857Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T10:51:16.857Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a200724f2081ae48042f4cc"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a200721f2081ae48042f4bb"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T10:51:16.857Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T10:51:16.857Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a2007a5f2081ae48042f5ca"
+  },
+  "recipientId": {
+    "$oid": "6a0c69a0ccf811b94cdb4361"
+  },
+  "messageId": {
+    "$oid": "6a2007a3f2081ae48042f5bd"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T10:53:25.143Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T10:53:25.143Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a2007a5f2081ae48042f5c9"
+  },
+  "recipientId": {
+    "$oid": "6a1d988bf75adf11dcfc34a5"
+  },
+  "messageId": {
+    "$oid": "6a2007a3f2081ae48042f5bd"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-03T10:53:25.143Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-03T10:53:25.143Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a231212d637536da9657ff8"
+  },
+  "recipientId": {
+    "$oid": "6a1eff532e292506d1b110b6"
+  },
+  "messageId": {
+    "$oid": "6a231211d637536da9657ff3"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-05T18:14:42.763Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-05T18:14:42.763Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a23121dd637536da9658034"
+  },
+  "recipientId": {
+    "$oid": "6a1eff532e292506d1b110b6"
+  },
+  "messageId": {
+    "$oid": "6a23121cd637536da965802f"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-05T18:14:53.046Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-05T18:14:53.046Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a231225d637536da9658070"
+  },
+  "recipientId": {
+    "$oid": "6a1eff532e292506d1b110b6"
+  },
+  "messageId": {
+    "$oid": "6a231224d637536da9658063"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-05T18:15:01.034Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-05T18:15:01.034Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a233b7e068416b89982b04e"
+  },
+  "recipientId": {
+    "$oid": "6a1eff532e292506d1b110b6"
+  },
+  "messageId": {
+    "$oid": "6a233b7d068416b89982b047"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-05T21:11:26.322Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-05T21:11:26.322Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a233ba1068416b89982b121"
+  },
+  "recipientId": {
+    "$oid": "6a1eff532e292506d1b110b6"
+  },
+  "messageId": {
+    "$oid": "6a233ba0068416b89982b11b"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-05T21:12:01.789Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-05T21:12:01.789Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a23bca170c97b389fe8886e"
+  },
+  "recipientId": {
+    "$oid": "6a1eff532e292506d1b110b6"
+  },
+  "messageId": {
+    "$oid": "6a23bc9f70c97b389fe88864"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-06T06:22:25.482Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-06T06:22:25.482Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a251c4f1b0b14b5cba4fef4"
+  },
+  "recipientId": {
+    "$oid": "6a0c67efccf811b94cdb432d"
+  },
+  "messageId": {
+    "$oid": "6a251c4e1b0b14b5cba4feeb"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-07T07:22:55.081Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-07T07:22:55.081Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a251cac1b0b14b5cba50147"
+  },
+  "recipientId": {
+    "$oid": "6a23bd1e70c97b389fe88ab0"
+  },
+  "messageId": {
+    "$oid": "6a251cab1b0b14b5cba50142"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-07T07:24:28.095Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-07T07:24:28.095Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a25cf4650afb030b05ed126"
+  },
+  "recipientId": {
+    "$oid": "6a23bd1e70c97b389fe88ab0"
+  },
+  "messageId": {
+    "$oid": "6a25cf4450afb030b05ed121"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-07T20:06:30.603Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-07T20:06:30.603Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a25cf5350afb030b05ed147"
+  },
+  "recipientId": {
+    "$oid": "6a1eff532e292506d1b110b6"
+  },
+  "messageId": {
+    "$oid": "6a25cf4d50afb030b05ed138"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-07T20:06:43.197Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-07T20:06:43.197Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a26527b00bdc0aee93f2c8b"
+  },
+  "recipientId": {
+    "$oid": "6a23bd1e70c97b389fe88ab0"
+  },
+  "messageId": {
+    "$oid": "6a26527a00bdc0aee93f2c86"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-08T05:26:19.889Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-08T05:26:19.889Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a2652bb00bdc0aee93f2cd6"
+  },
+  "recipientId": {
+    "$oid": "6a1eff532e292506d1b110b6"
+  },
+  "messageId": {
+    "$oid": "6a2652b900bdc0aee93f2cd1"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-08T05:27:23.979Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-08T05:27:23.979Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a2652be00bdc0aee93f2cde"
+  },
+  "recipientId": {
+    "$oid": "6a1eff532e292506d1b110b6"
+  },
+  "messageId": {
+    "$oid": "6a2652bd00bdc0aee93f2cd9"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-08T05:27:26.674Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-08T05:27:26.674Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a2652ca00bdc0aee93f2d00"
+  },
+  "recipientId": {
+    "$oid": "6a1eff532e292506d1b110b6"
+  },
+  "messageId": {
+    "$oid": "6a2652c800bdc0aee93f2cfa"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-08T05:27:38.070Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-08T05:27:38.070Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a2fb59e7a6ee74fb2f2a4f9"
+  },
+  "recipientId": {
+    "$oid": "6a2654ebb74568a564ecaceb"
+  },
+  "messageId": {
+    "$oid": "6a2fb59e7a6ee74fb2f2a4f5"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-15T08:19:42.266Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-15T08:19:42.266Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a2fcbbdad3f188fa4a5585e"
+  },
+  "recipientId": {
+    "$oid": "6a2fbcc1abbd286b9632fc39"
+  },
+  "messageId": {
+    "$oid": "6a2fcbbdad3f188fa4a5585a"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-15T09:54:05.487Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-15T09:54:05.487Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6a2fcc5bad3f188fa4a558be"
+  },
+  "recipientId": {
+    "$oid": "6a2fbcc1abbd286b9632fc39"
+  },
+  "messageId": {
+    "$oid": "6a2fcc5bad3f188fa4a558ba"
+  },
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-06-15T09:56:43.515Z"
+  },
+  "updatedAt": {
+    "$date": "2026-06-15T09:56:43.515Z"
+  }
+}]
