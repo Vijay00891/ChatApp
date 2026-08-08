@@ -1,0 +1,16 @@
+name: Keep Render Server Awake
+
+on:
+  schedule:
+    # Runs every 10 minutes
+    - cron: '*/10 * * * *'
+  # Allows you to run this workflow manually from the Actions tab if needed
+  workflow_dispatch:
+
+jobs:
+  ping-server:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render Backend
+        # We ping the root URL just to wake up/keep the server active
+        run: curl -s https://chatapp-lewz.onrender.com/ > /dev/null
