@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, memo } from 'react';
-import { Check, CheckCheck, FileText, X, ChevronDown, Copy, Reply, Smile, Trash2 } from 'lucide-react';
+import { Check, CheckCheck, FileText, X, ChevronDown, Copy, Reply, Smile, Trash2, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { messagesAPI } from '../lib/api';
@@ -332,6 +332,7 @@ const MessageBubble = memo(function MessageBubble({ message, prevMessage, onRepl
 
           {/* Timestamp + read receipt */}
           <div className="absolute bottom-1.5 right-2 flex items-center gap-1 opacity-70">
+            {message.expiresAt && <Clock size={10} className="text-subtle-text" />}
             <span className="text-[10px] text-subtle-text leading-none">
               {formatTime(message.createdAt)}
             </span>

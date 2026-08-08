@@ -104,6 +104,11 @@ const socketHandler = (io) => {
 
         const messageId = new mongoose.Types.ObjectId();
         const createdAt = new Date();
+        
+        let expiresAt = null;
+        if (room.disappearingTimer && room.disappearingTimer > 0) {
+          expiresAt = new Date(createdAt.getTime() + room.disappearingTimer * 1000);
+        }
 
         const recipientIds = room.members
           .filter((m) => m._id.toString() !== userId)
@@ -141,6 +146,7 @@ const socketHandler = (io) => {
           status: onlineRecipientIds.length > 0 ? 'delivered' : 'sent',
           deliveredTo: onlineRecipientIds,
           createdAt: createdAt.toISOString(),
+          expiresAt: expiresAt ? expiresAt.toISOString() : null,
           tempId: tempId,
         };
 
@@ -173,6 +179,7 @@ const socketHandler = (io) => {
               deliveredTo: onlineRecipientIds,
               deliveredAt: onlineRecipientIds.length > 0 ? new Date() : null,
               createdAt,
+              expiresAt,
             });
 
             await Room.findByIdAndUpdate(roomId, {

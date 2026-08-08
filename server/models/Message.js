@@ -75,6 +75,10 @@ const messageSchema = new mongoose.Schema(
         },
       }
     ],
+    expiresAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );
@@ -82,5 +86,7 @@ const messageSchema = new mongoose.Schema(
 messageSchema.index({ roomId: 1, createdAt: -1 });
 // Compound index for unread count aggregation (used in rooms.js)
 messageSchema.index({ roomId: 1, senderId: 1, readBy: 1 });
+// TTL Index for disappearing messages (MongoDB automatically deletes documents when expiresAt <= current date)
+messageSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 module.exports = mongoose.model('Message', messageSchema);

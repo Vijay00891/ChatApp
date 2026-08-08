@@ -11,6 +11,7 @@ const userRoutes = require('./routes/users');
 const roomRoutes = require('./routes/rooms');
 const messageRoutes = require('./routes/messages');
 const notificationRoutes = require('./routes/notifications');
+const statusRoutes = require('./routes/status');
 const socketHandler = require('./socket/socketHandler');
 
 const app = express();
@@ -72,6 +73,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/status', statusRoutes);
 
 // 404 handler
 app.use((req, res) => {

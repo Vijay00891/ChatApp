@@ -382,4 +382,26 @@ router.post('/:id/mute', authMiddleware, async (req, res) => {
   }
 });
 
+// PUT /api/rooms/:id/disappearing
+router.put('/:id/disappearing', authMiddleware, async (req, res) => {
+  try {
+    const { timer } = req.body;
+    const room = await Room.findOne({ _id: req.params.id, members: req.user._id });
+    if (!room) return res.status(404).json({ message: 'Room not found.' });
+
+    room.disappearingTimer = timer;
+    await room.save();
+    
+    const io = req.app.get('io');
+    if (io) {
+      io.to(room._id.toString()).emit('room_updated', { roomId: room._id });
+    }
+
+    res.json({ disappearingTimer: timer, roomId: room._id });
+  } catch (error) {
+    console.error('Update disappearing messages error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+});
+
 module.exports = router;

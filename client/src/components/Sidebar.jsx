@@ -7,6 +7,7 @@ import Avatar from './Avatar';
 import ProfileModal from './ProfileModal';
 import { SidebarSkeletonItems } from './Skeletons';
 import { getCachedRooms, setCachedRooms } from '../lib/cache';
+import StatusList from './StatusList';
 
 function formatRelativeTime(dateStr) {
   if (!dateStr) return '';
@@ -474,8 +475,11 @@ export default function Sidebar({ selectedRoom, onSelectRoom, deletedRooms = {},
 
 
 
+      {/* Status List */}
+      <StatusList />
+
       {/* Search bar */}
-      <div className="px-3 py-2">
+      <div className="px-3 py-2 mt-1">
         <div className="relative">
           <Search
             size={16}

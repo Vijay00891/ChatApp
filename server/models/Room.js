@@ -49,6 +49,10 @@ const roomSchema = new mongoose.Schema(
         ref: 'User',
       },
     ],
+    disappearingTimer: {
+      type: Number,
+      default: 0, // 0 means off
+    },
   },
   { timestamps: true }
 );

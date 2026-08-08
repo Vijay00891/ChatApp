@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback, useId } from 'react';
-import { ArrowLeft, Phone, Video, MoreVertical, X, Edit2, Check, Camera, Trash2, VolumeX, User, UserPlus, Ban } from 'lucide-react';
+import { ArrowLeft, Phone, Video, MoreVertical, X, Edit2, Check, Camera, Trash2, VolumeX, User, UserPlus, Ban, Clock } from 'lucide-react';
 import { messagesAPI, roomsAPI, usersAPI } from '../lib/api';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
@@ -171,6 +171,21 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
       setEditMode(false);
     } catch (err) {
       console.error('Failed to update name:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdateDisappearingTimer = async (timer) => {
+    try {
+      setSaving(true);
+      const res = await roomsAPI.updateDisappearingTimer(room._id, timer);
+      if (onUpdateRoom) {
+        onUpdateRoom({ ...room, disappearingTimer: res.data.disappearingTimer });
+      }
+    } catch (err) {
+      console.error('Failed to update timer:', err);
+      alert('Failed to update disappearing messages setting');
     } finally {
       setSaving(false);
     }
@@ -856,6 +871,37 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
                 </div>
               </div>
             )}
+
+            {/* Disappearing Messages Section */}
+            <div className="w-full bg-background rounded-card p-4 border border-border-color space-y-3 mt-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Clock size={16} className="text-primary" />
+                <label className="text-xs font-bold text-on-surface">Disappearing Messages</label>
+              </div>
+              <p className="text-xs text-subtle-text mb-3">
+                Make messages in this chat disappear for everyone after a set time.
+              </p>
+              <div className="flex flex-col gap-2">
+                {[
+                  { label: 'Off', value: 0 },
+                  { label: '24 Hours', value: 86400 },
+                  { label: '7 Days', value: 604800 },
+                ].map((opt) => (
+                  <label key={opt.value} className="flex items-center justify-between p-2 rounded hover:bg-hover-bg cursor-pointer">
+                    <span className="text-sm font-medium text-on-surface">{opt.label}</span>
+                    <input 
+                      type="radio" 
+                      name="disappearingTimer" 
+                      value={opt.value}
+                      checked={(room.disappearingTimer || 0) === opt.value}
+                      onChange={() => handleUpdateDisappearingTimer(opt.value)}
+                      disabled={saving}
+                      className="text-primary focus:ring-primary h-4 w-4 border-border-color"
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>

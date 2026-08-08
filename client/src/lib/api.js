@@ -57,6 +57,14 @@ export const roomsAPI = {
   removeMember: (id, memberId) => api.post(`/rooms/group/${id}/remove`, { memberId }),
   archive: (id) => api.post(`/rooms/${id}/archive`),
   mute: (id) => api.post(`/rooms/${id}/mute`),
+  updateDisappearingTimer: (id, timer) => api.put(`/rooms/${id}/disappearing`, { timer }),
+};
+
+// --- Status ---
+export const statusAPI = {
+  create: (data) => api.post('/status', data),
+  getAll: () => api.get('/status'),
+  view: (id) => api.post(`/status/${id}/view`),
 };
 
 // --- Notifications ---
