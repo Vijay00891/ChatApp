@@ -165,7 +165,7 @@ const MessageBubble = memo(function MessageBubble({ message, prevMessage, onRepl
               </div>
 
               <button 
-                onClick={() => { onReply(); setShowMenu(false); }}
+                onClick={() => { onReply(message); setShowMenu(false); }}
                 className="w-full text-left px-4 py-2 hover:bg-hover-bg text-sm text-on-surface flex items-center gap-3 transition-colors"
               >
                 <Reply size={16} className="text-subtle-text" /> Reply
@@ -188,7 +188,7 @@ const MessageBubble = memo(function MessageBubble({ message, prevMessage, onRepl
           )}
 
           <div
-            onDoubleClick={onReply}
+            onDoubleClick={() => onReply(message)}
             onContextMenu={handleContextMenu}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
