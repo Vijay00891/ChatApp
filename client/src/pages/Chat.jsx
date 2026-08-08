@@ -162,7 +162,9 @@ export default function Chat() {
 
   return (
     <div className="flex h-[100dvh] overflow-hidden flex-col-reverse md:flex-row bg-background relative">
-      <NavigationBar activeTab={activeTab} onChange={setActiveTab} />
+      <div className={`${mobileView === 'chat' ? 'hidden' : 'flex'} md:flex shrink-0 w-full md:w-[72px]`}>
+        <NavigationBar activeTab={activeTab} onChange={setActiveTab} />
+      </div>
       
       {/* Sidebar — conditionally visible on mobile */}
       <div
@@ -193,7 +195,7 @@ export default function Chat() {
       <div
         className={`
           ${mobileView === 'chat' ? 'flex' : 'hidden'}
-          md:flex flex-col flex-1 min-w-0
+          md:flex flex-col flex-1 min-w-0 min-h-0
         `}
       >
         {selectedRoom ? (
