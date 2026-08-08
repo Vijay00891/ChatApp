@@ -1,13 +1,20 @@
 const express = require('express');
+const { v4: uuidv4 } = require('uuid');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const Message = require('../models/Message');
 const Room = require('../models/Room');
 const authMiddleware = require('../middleware/authMiddleware');
-const multer = require('multer');
-const { v4: uuidv4 } = require('uuid');
-const fs = require('fs');
-const path = require('path');
 const { uploadFileHelper } = require('../utils/mediaOptimizer');
 const { addJob, getJobStatus } = require('../utils/videoQueue');
+const got = require('got');
+const metascraper = require('metascraper')([
+  require('metascraper-title')(),
+  require('metascraper-description')(),
+  require('metascraper-image')(),
+  require('metascraper-url')()
+]);
 
 const tempDir = path.join(__dirname, '../temp');
 if (!fs.existsSync(tempDir)) {
@@ -236,6 +243,23 @@ router.get('/media/:jobId/status', authMiddleware, (req, res) => {
     return res.status(404).json({ message: 'Job not found.' });
   }
   res.json(status);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/messages/preview — Fetch OpenGraph tags for link previews
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/preview', authMiddleware, async (req, res) => {
+  const targetUrl = req.query.url;
+  if (!targetUrl) return res.status(400).json({ message: 'URL required' });
+
+  try {
+    const { body: html, url } = await got(targetUrl, { timeout: 3000 });
+    const metadata = await metascraper({ html, url });
+    res.json(metadata);
+  } catch (error) {
+    // Return empty metadata on failure instead of 500, so client just renders normal link
+    res.json({ title: null, description: null, image: null, url: targetUrl });
+  }
 });
 
 module.exports = router;

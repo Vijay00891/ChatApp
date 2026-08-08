@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { Send, Smile, Paperclip, X, Loader2, Image as ImageIcon, FileText } from 'lucide-react';
+import { Send, Smile, Paperclip, X, Loader2, Image as ImageIcon, FileText, Mic, Trash2, StopCircle } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 import { compressImage } from '../utils/imageCompressor';
 
@@ -17,6 +17,74 @@ export default function InputBar({ roomId, onSend, disabled, replyingTo, onCance
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
   const { emit } = useSocket();
+
+  // Voice Note State
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const recordingTimerRef = useRef(null);
+
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.start(100);
+      setIsRecording(true);
+      setRecordingTime(0);
+
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingTime((prev) => prev + 1);
+      }, 1000);
+    } catch (err) {
+      console.error('Microphone access denied:', err);
+      alert('Microphone access denied. Please allow microphone permissions to send voice notes.');
+    }
+  };
+
+  const stopRecording = (cancel = false) => {
+    if (mediaRecorderRef.current && isRecording) {
+      const recorder = mediaRecorderRef.current;
+      recorder.stop();
+      recorder.stream.getTracks().forEach((track) => track.stop());
+      clearInterval(recordingTimerRef.current);
+      setIsRecording(false);
+
+      if (!cancel) {
+        recorder.onstop = () => {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          const file = new File([audioBlob], `voicenote_${Date.now()}.webm`, { type: 'audio/webm' });
+          
+          (async () => {
+            setIsUploading(true);
+            try {
+              const data = await uploadToBackend(file);
+              const finalUrl = `${data.url}?filename=VoiceNote.webm`;
+              onSend(finalUrl, 'audio');
+            } catch (err) {
+              console.error('Audio upload failed:', err);
+              alert('Failed to send voice note');
+            } finally {
+              setIsUploading(false);
+            }
+          })();
+        };
+      }
+    }
+  };
 
   const handleTyping = useCallback(() => {
     if (!isTyping) {
@@ -393,44 +461,76 @@ export default function InputBar({ roomId, onSend, disabled, replyingTo, onCance
         <Smile size={20} />
       </button>
 
-      {/* Text input */}
-      <div className="flex-1 relative">
-        <textarea
-          ref={textareaRef}
-          id="message-input"
-          value={text}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          placeholder="Message"
-          rows={1}
-          disabled={disabled}
-          className="w-full resize-none bg-background border border-border-color rounded-pill
-                     px-5 py-2.5 text-sm text-on-surface placeholder-subtle-text
-                     focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20
-                     transition-all duration-200 font-ui leading-relaxed"
-          style={{ minHeight: 42, maxHeight: 120, overflowY: 'auto' }}
-        />
-      </div>
+      {/* Text input or Recording UI */}
+      {isRecording ? (
+        <div className="flex-1 relative flex items-center bg-error/10 border border-error/20 rounded-pill px-4 h-[42px] animate-in fade-in">
+          <div className="w-2.5 h-2.5 bg-error rounded-full animate-pulse mr-3" />
+          <span className="text-error font-medium font-ui">{formatTime(recordingTime)}</span>
+          <div className="flex-1" />
+          <button
+            onClick={() => stopRecording(true)}
+            className="text-subtle-text hover:text-error transition-colors px-2 py-1 flex items-center gap-1 text-sm font-medium"
+          >
+            <Trash2 size={16} /> Cancel
+          </button>
+        </div>
+      ) : (
+        <div className="flex-1 relative">
+          <textarea
+            ref={textareaRef}
+            id="message-input"
+            value={text}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            placeholder="Message"
+            rows={1}
+            disabled={disabled}
+            className="w-full resize-none bg-background border border-border-color rounded-pill
+                       px-5 py-2.5 text-sm text-on-surface placeholder-subtle-text
+                       focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20
+                       transition-all duration-200 font-ui leading-relaxed"
+            style={{ minHeight: 42, maxHeight: 120, overflowY: 'auto' }}
+          />
+        </div>
+      )}
 
-      {/* Send button */}
-      <button
-        id="btn-send"
-        onClick={handleSend}
-        disabled={(!text.trim() && !attachment) || disabled || isUploading}
-        className={`shrink-0 mb-0.5 w-10 h-10 rounded-full flex items-center justify-center
-                    transition-all duration-200 ripple-container
-                    ${(text.trim() || attachment) && !disabled && !isUploading
-                      ? 'bg-primary text-white shadow-google hover:bg-primary-dark active:scale-90'
-                      : 'bg-hover-bg text-subtle-text cursor-not-allowed'
-                    }`}
-        aria-label="Send message"
-      >
-        {isUploading ? (
-          <Loader2 size={18} className="animate-spin" />
-        ) : (
-          <Send size={18} style={{ marginLeft: 2 }} />
-        )}
-      </button>
+      {/* Send or Mic button */}
+      {!text.trim() && !attachment && !isRecording ? (
+        <button
+          onClick={startRecording}
+          disabled={disabled || isUploading}
+          className={`shrink-0 mb-0.5 w-10 h-10 rounded-full flex items-center justify-center
+                      transition-all duration-200 ripple-container
+                      ${disabled || isUploading
+                        ? 'bg-hover-bg text-subtle-text cursor-not-allowed'
+                        : 'bg-primary text-white shadow-google hover:bg-primary-dark active:scale-90'
+                      }`}
+          aria-label="Record voice note"
+        >
+          <Mic size={20} />
+        </button>
+      ) : (
+        <button
+          id="btn-send"
+          onClick={isRecording ? () => stopRecording(false) : handleSend}
+          disabled={(!isRecording && !text.trim() && !attachment) || disabled || isUploading}
+          className={`shrink-0 mb-0.5 w-10 h-10 rounded-full flex items-center justify-center
+                      transition-all duration-200 ripple-container
+                      ${((text.trim() || attachment || isRecording) && !disabled && !isUploading)
+                        ? (isRecording ? 'bg-success hover:bg-success/90' : 'bg-primary hover:bg-primary-dark') + ' text-white shadow-google active:scale-90'
+                        : 'bg-hover-bg text-subtle-text cursor-not-allowed'
+                      }`}
+          aria-label="Send message"
+        >
+          {isUploading ? (
+            <Loader2 size={18} className="animate-spin" />
+          ) : isRecording ? (
+            <Send size={18} style={{ marginLeft: 2 }} />
+          ) : (
+            <Send size={18} style={{ marginLeft: 2 }} />
+          )}
+        </button>
+      )}
     </div>
   </div>
   );

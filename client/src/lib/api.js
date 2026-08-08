@@ -65,4 +65,5 @@ export const notificationsAPI = {
 export const messagesAPI = {
   getByRoom: (roomId, page = 1) => api.get(`/messages/${roomId}?page=${page}`),
   send: (data) => api.post('/messages', data),
+  getPreview: (url) => api.get(`/messages/preview?url=${encodeURIComponent(url)}`),
 };

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, memo } from 'react';
 import { Check, CheckCheck, FileText, X, ChevronDown, Copy, Reply, Smile, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
+import { messagesAPI } from '../lib/api';
 
 function formatTime(dateStr) {
   if (!dateStr) return '';
@@ -41,8 +42,35 @@ const MessageBubble = memo(function MessageBubble({ message, prevMessage, onRepl
   const { emit } = useSocket();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [linkPreview, setLinkPreview] = useState(null);
   const menuRef = useRef(null);
   const isMine = message.senderId?._id === user?._id || message.senderId === user?._id;
+
+  useEffect(() => {
+    if (message.type === 'text' && !linkPreview) {
+      const urlRegex = /(https?:\/\/[^\s]+)/g;
+      const urls = message.content.match(urlRegex);
+      if (urls && urls.length > 0) {
+        messagesAPI.getPreview(urls[0]).then(res => {
+          if (res.data && (res.data.title || res.data.image)) {
+            setLinkPreview({ ...res.data, originalUrl: urls[0] });
+          }
+        }).catch(() => {});
+      }
+    }
+  }, [message.content, message.type, linkPreview]);
+
+  const renderTextWithLinks = (text) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+    return parts.map((part, i) => 
+      part.match(urlRegex) ? (
+        <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline" onClick={e => e.stopPropagation()}>
+          {part}
+        </a>
+      ) : part
+    );
+  };
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -212,6 +240,7 @@ const MessageBubble = memo(function MessageBubble({ message, prevMessage, onRepl
               <div className="truncate text-on-surface/70 max-w-[200px]">
                 {message.replyTo.type === 'image' ? '📷 Photo' 
                   : message.replyTo.type === 'video' ? '🎬 Video'
+                  : message.replyTo.type === 'audio' ? '🎤 Voice Note'
                   : message.replyTo.type === 'file' ? '📄 Document' 
                   : message.replyTo.content}
               </div>
@@ -224,6 +253,15 @@ const MessageBubble = memo(function MessageBubble({ message, prevMessage, onRepl
               onClick={() => setIsFullscreen(true)}
               className="max-w-[240px] md:max-w-[320px] rounded-xl object-contain bg-black/5 cursor-pointer hover:opacity-90 transition-opacity"
             />
+          ) : message.type === 'audio' ? (
+            <div className="min-w-[200px] py-1">
+              <audio 
+                src={message.content} 
+                controls 
+                className="w-full h-10 outline-none"
+                preload="metadata"
+              />
+            </div>
           ) : message.type === 'video' || isVideoUrl(message.content) ? (
             <div className="relative max-w-[240px] md:max-w-[320px]">
               {(message.mediaStatus === 'processing' || message.mediaStatus === 'uploaded') ? (
@@ -263,12 +301,33 @@ const MessageBubble = memo(function MessageBubble({ message, prevMessage, onRepl
               </span>
             </a>
           ) : (
-            <p 
-              className="whitespace-pre-wrap pr-12"
-              style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
-            >
-              {message.content}
-            </p>
+            <div className="flex flex-col">
+              {linkPreview && (
+                <a 
+                  href={linkPreview.url || linkPreview.originalUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="block mb-2 mt-1 rounded-lg overflow-hidden border border-border-color bg-black/5 hover:bg-black/10 transition-colors max-w-[280px]"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {linkPreview.image && (
+                    <img src={linkPreview.image} alt={linkPreview.title} className="w-full h-32 object-cover bg-surface" />
+                  )}
+                  <div className="p-2 bg-surface/50 backdrop-blur-sm">
+                    <div className="text-xs font-semibold truncate text-on-surface">{linkPreview.title || linkPreview.url}</div>
+                    {linkPreview.description && (
+                      <div className="text-[10px] text-subtle-text line-clamp-2 mt-0.5">{linkPreview.description}</div>
+                    )}
+                  </div>
+                </a>
+              )}
+              <p 
+                className={`whitespace-pre-wrap ${linkPreview ? 'pr-8 pb-3' : 'pr-12'}`}
+                style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+              >
+                {renderTextWithLinks(message.content)}
+              </p>
+            </div>
           )}
 
           {/* Timestamp + read receipt */}
