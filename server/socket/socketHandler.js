@@ -70,7 +70,7 @@ const socketHandler = (io) => {
 
         // Mark messages as READ for this user since they just opened the chat
         await Message.updateMany(
-          { roomId: id, senderId: { $ne: userId } },
+          { roomId: id, senderId: { $ne: userId }, readBy: { $ne: userId } },
           { $addToSet: { readBy: userId }, $set: { status: 'read' } }
         );
 
@@ -106,6 +106,18 @@ const socketHandler = (io) => {
           onlineUsers.has(recipientId)
         );
 
+        // Populate replyTo for real-time delivery so recipients see the reply preview
+        let populatedReplyTo = null;
+        if (replyTo) {
+          const replyMsg = await Message.findById(replyTo)
+            .select('content type senderId')
+            .populate('senderId', 'name')
+            .lean();
+          if (replyMsg) {
+            populatedReplyTo = replyMsg;
+          }
+        }
+
         // 1. Instantly construct the populated message payload
         const populated = {
           _id: messageId,
@@ -118,7 +130,7 @@ const socketHandler = (io) => {
           },
           content,
           type,
-          replyTo: replyTo, // client already knows the referenced message, populated on DB retrieval
+          replyTo: populatedReplyTo,
           status: onlineRecipientIds.length > 0 ? 'delivered' : 'sent',
           deliveredTo: onlineRecipientIds,
           createdAt: createdAt.toISOString(),
@@ -302,7 +314,19 @@ const socketHandler = (io) => {
         const message = await Message.findById(messageId);
         if (message && message.senderId.toString() === userId) {
           await Message.findByIdAndDelete(messageId);
+
+          // If the deleted message was the room's lastMessage, update to previous message
+          const room = await Room.findById(roomId);
+          if (room && room.lastMessage?.toString() === messageId) {
+            const prevMessage = await Message.findOne({ roomId })
+              .sort({ createdAt: -1 })
+              .select('_id');
+            room.lastMessage = prevMessage ? prevMessage._id : null;
+            await room.save();
+          }
+
           io.to(roomId).emit('message_deleted', { messageId, roomId });
+          io.to(roomId).emit('room_updated', { roomId });
         }
       } catch (err) {
         console.error('Delete message error:', err);

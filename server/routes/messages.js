@@ -136,6 +136,9 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req, res) =
       const uniqueId = uuidv4();
       const originalUrl = await uploadFileHelper(tempFilePath, `${uniqueId}-orig${fileExt}`, cloudOpts);
 
+      // Cleanup temp file after uploading to Cloudinary
+      try { if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath); } catch (e) {}
+
       // 2. Return response immediately — client sees the message right away
       //    The jobId allows polling for compression status
       return res.json({

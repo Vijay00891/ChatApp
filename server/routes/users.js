@@ -29,7 +29,20 @@ router.get('/search', authMiddleware, async (req, res) => {
   }
 });
 
-// GET /api/users/:id
+// GET /api/users — get all users except self (for starting new chats)
+router.get('/', authMiddleware, async (req, res) => {
+  try {
+    const users = await User.find({ _id: { $ne: req.user._id } })
+      .select('name email avatar avatarColor status lastSeen')
+      .limit(50)
+      .lean();
+    res.json({ users });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error.' });
+  }
+});
+
+// GET /api/users/:id — must be AFTER all named routes to avoid catching them
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select(
@@ -39,19 +52,6 @@ router.get('/:id', authMiddleware, async (req, res) => {
       return res.status(404).json({ message: 'User not found.' });
     }
     res.json({ user });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error.' });
-  }
-});
-
-// GET /api/users — get all users except self (for starting new chats)
-router.get('/', authMiddleware, async (req, res) => {
-  try {
-    const users = await User.find({ _id: { $ne: req.user._id } })
-      .select('name email avatar avatarColor status lastSeen')
-      .limit(50)
-      .lean();
-    res.json({ users });
   } catch (error) {
     res.status(500).json({ message: 'Server error.' });
   }

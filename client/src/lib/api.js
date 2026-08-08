@@ -41,8 +41,6 @@ export const authAPI = {
 // --- Users ---
 export const usersAPI = {
   search: (query) => api.get(`/users/search?q=${encodeURIComponent(query)}`),
-  getContacts: () => api.get('/users/contacts'),
-  addContact: (userId) => api.post(`/users/contacts/${userId}`),
   getAll: () => api.get('/users'),
   updateProfile: (data) => api.put('/users/profile', data),
 };
