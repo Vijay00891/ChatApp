@@ -282,11 +282,6 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
         setMessages(roomMessages);
         setHasMore(res.data.pagination?.hasMore ?? roomMessages.length === 20);
 
-        roomMessages
-          .filter((m) => (m.senderId?._id ?? m.senderId) !== user?._id)
-          .forEach((msg) => {
-            emit('message_ack', { messageId: msg._id, roomId: room._id });
-          });
 
         const unreadIds = roomMessages
           .filter((m) => (m.senderId?._id ?? m.senderId) !== user?._id && m.status !== 'read')
@@ -391,7 +386,6 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
         .map((m) => m._id);
 
       roomMessages.forEach((msg) => {
-        emit('message_ack', { messageId: msg._id, roomId: room._id });
         // Send notification for pending messages
         const senderName = msg.senderId?.name ?? 'Unknown';
         if (!mutedRooms.includes(room._id)) {
@@ -415,7 +409,6 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
         .map((m) => m._id);
 
       missed.forEach((msg) => {
-        emit('message_ack', { messageId: msg._id, roomId: room._id });
         // Send notification for synced messages
         const senderName = msg.senderId?.name ?? 'Unknown';
         if (!mutedRooms.includes(room._id)) {
