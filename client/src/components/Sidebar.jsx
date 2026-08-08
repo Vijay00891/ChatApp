@@ -696,4 +696,4 @@ export default memo(function Sidebar({
       />
     </div>
   );
-}
+});
