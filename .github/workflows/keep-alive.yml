@@ -2,8 +2,8 @@ name: Keep Render Server Awake
 
 on:
   schedule:
-    # Runs every 10 minutes
-    - cron: '*/10 * * * *'
+    # Runs every 5 minutes (GitHub Actions cron is often delayed, 5 mins gives a better buffer)
+    - cron: '*/5 * * * *'
   # Allows you to run this workflow manually from the Actions tab if needed
   workflow_dispatch:
 
@@ -12,5 +12,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping Render Backend
-        # We ping the root URL just to wake up/keep the server active
-        run: curl -s https://chatapp-lewz.onrender.com/ > /dev/null
+        # We ping the /health endpoint with a User-Agent to ensure a 200 OK response
+        run: curl -s -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" https://chatapp-lewz.onrender.com/health > /dev/null
