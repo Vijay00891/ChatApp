@@ -4,12 +4,11 @@ import { messagesAPI, roomsAPI, usersAPI } from '../lib/api';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../hooks/useNotification';
-import { useWebRTC } from '../hooks/useWebRTC';
+import { useWebRTCContext } from './WebRTCWrapper';
 import Avatar from './Avatar';
 import MessageBubble from './MessageBubble';
 import InputBar from './InputBar';
 import TypingIndicator from './TypingIndicator';
-import CallUI from './CallUI';
 import ImagePreviewModal from './ImagePreviewModal';
 import { MessageListSkeleton } from './Skeletons';
 import { formatLastSeen } from '../lib/formatLastSeen';
@@ -55,22 +54,7 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
   const { user } = useAuth();
   const { on, off, emit, isUserOnline, isConnected, getUserLastSeen } = useSocket();
   const { sendNotification } = useNotification();
-  const {
-    callState,
-    callType,
-    remoteUser,
-    isMicOn,
-    isCameraOn,
-    callDuration,
-    localVideoRef,
-    remoteVideoRef,
-    startCall,
-    acceptCall,
-    rejectCall,
-    endCall,
-    toggleMic,
-    toggleCamera
-  } = useWebRTC();
+  const { startCall } = useWebRTCContext();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [peerTyping, setPeerTyping] = useState(false);
@@ -1083,22 +1067,6 @@ export default function ChatWindow({ room, onBack, onDeleteRoom, onUpdateRoom, m
         />
       )}
 
-      {/* Call UI */}
-      <CallUI
-        callState={callState}
-        callType={callType}
-        remoteUser={remoteUser}
-        isMicOn={isMicOn}
-        isCameraOn={isCameraOn}
-        callDuration={callDuration}
-        localVideoRef={localVideoRef}
-        remoteVideoRef={remoteVideoRef}
-        acceptCall={acceptCall}
-        rejectCall={rejectCall}
-        endCall={endCall}
-        toggleMic={toggleMic}
-        toggleCamera={toggleCamera}
-      />
 
       <ImagePreviewModal
         isOpen={showPreviewModal}

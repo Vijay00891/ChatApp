@@ -9,6 +9,7 @@ import { AppSkeleton } from './components/Skeletons';
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const Chat = lazy(() => import('./pages/Chat'));
+import WebRTCWrapper from './components/WebRTCWrapper';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -50,7 +51,9 @@ export default function App() {
           path="/"
           element={
             <ProtectedRoute>
-              <Chat />
+              <WebRTCWrapper>
+                <Chat />
+              </WebRTCWrapper>
             </ProtectedRoute>
           }
         />
