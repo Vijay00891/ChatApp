@@ -41,6 +41,7 @@ export function SocketProvider({ children }) {
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
+      transports: ['websocket'], // Connect instantly without HTTP polling
     });
 
     socketRef.current = socket;
