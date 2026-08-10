@@ -31,8 +31,8 @@ const io = new Server(server, {
     methods: ['GET', 'POST'],
     credentials: true,
   },
-  pingTimeout: 60000,
-  pingInterval: 25000,
+  pingTimeout: 5000,
+  pingInterval: 10000,
 });
 
 app.set('io', io);

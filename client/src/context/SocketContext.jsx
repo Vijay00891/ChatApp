@@ -45,6 +45,13 @@ export function SocketProvider({ children }) {
 
     socketRef.current = socket;
 
+    const handleOnline = () => {
+      if (socket.disconnected) {
+        socket.connect();
+      }
+    };
+    window.addEventListener('online', handleOnline);
+
     socket.on('connect', () => {
       setIsConnected(true);
       socket.emit('request_pending');
@@ -117,6 +124,7 @@ export function SocketProvider({ children }) {
       socket.off('user_offline');
       socket.disconnect();
       socketRef.current = null;
+      window.removeEventListener('online', handleOnline);
     };
   }, [token, user]);
 

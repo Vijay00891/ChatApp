@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext';
+import { AppState } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 const SocketContext = createContext(null);
@@ -48,6 +49,12 @@ export function SocketProvider({ children }) {
 
     socketRef.current = socket;
 
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (nextAppState === 'active' && socket.disconnected) {
+        socket.connect();
+      }
+    });
+
     socket.on('connect', () => {
       setIsConnected(true);
       socket.emit('request_pending');
@@ -92,7 +99,9 @@ export function SocketProvider({ children }) {
     });
 
     return () => {
+      subscription.remove();
       socket.disconnect();
+      socketRef.current = null;
     };
   }, [token, user]);
 
