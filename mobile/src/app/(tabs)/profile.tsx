@@ -1,19 +1,44 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { Image } from 'expo-image';
 import { useAuth } from '../../context/AuthContext';
 import { usersAPI } from '../../lib/api';
+import Avatar from '../../components/Avatar';
+import * as ImagePicker from 'expo-image-picker';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function ProfileScreen() {
   const { user, updateUserContext, logout } = useAuth();
   const [name, setName] = useState(user?.name || '');
+  const [avatarBase64, setAvatarBase64] = useState(null);
+  const [previewUri, setPreviewUri] = useState(user?.avatar);
   const [loading, setLoading] = useState(false);
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setPreviewUri(result.assets[0].uri);
+      setAvatarBase64(`data:image/jpeg;base64,${result.assets[0].base64}`);
+    }
+  };
 
   const handleSave = async () => {
     if (!name.trim()) return;
     try {
       setLoading(true);
-      const { data } = await usersAPI.updateProfile({ name });
-      updateUserContext({ name: data.name });
+      const updateData = { name };
+      if (avatarBase64) {
+        updateData.avatar = avatarBase64;
+      }
+      const { data } = await usersAPI.updateProfile(updateData);
+      updateUserContext({ name: data.name, avatar: data.avatar });
       Alert.alert('Success', 'Profile updated successfully');
     } catch (err) {
       Alert.alert('Error', 'Failed to update profile');
@@ -30,9 +55,16 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.content}>
-        <View style={styles.avatarLarge}>
-          <Text style={styles.avatarTextLarge}>{user?.name?.substring(0, 2).toUpperCase()}</Text>
-        </View>
+        <TouchableOpacity style={styles.avatarLargeContainer} onPress={pickImage}>
+          {previewUri ? (
+            <Image source={{ uri: previewUri }} style={styles.localPreview} contentFit="cover" transition={200} />
+          ) : (
+            <Avatar url={previewUri} name={user?.name} color={user?.avatarColor} size={100} />
+          )}
+          <View style={styles.editIconContainer}>
+            <Ionicons name="camera" size={16} color="#FFF" />
+          </View>
+        </TouchableOpacity>
 
         <Text style={styles.label}>Display Name</Text>
         <TextInput
@@ -74,18 +106,11 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 20, fontWeight: 'bold' },
   content: { padding: 20 },
-  avatarLarge: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#007bff',
+  avatarLargeContainer: {
     alignSelf: 'center',
-    justifyContent: 'center',
-    alignItems: 'center',
     marginBottom: 30,
     marginTop: 20,
   },
-  avatarTextLarge: { fontSize: 36, color: '#fff', fontWeight: 'bold' },
   label: { fontSize: 14, color: '#666', marginBottom: 8, fontWeight: '500' },
   input: {
     backgroundColor: '#fff',
@@ -114,4 +139,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logoutButtonText: { color: 'red', fontSize: 16, fontWeight: 'bold' },
+  localPreview: { width: 100, height: 100, borderRadius: 50 },
+  editIconContainer: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#007bff',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFF',
+  },
 });

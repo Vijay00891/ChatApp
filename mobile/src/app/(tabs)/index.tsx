@@ -1,9 +1,22 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, TextInput, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, TextInput, Keyboard, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
 import { roomsAPI, usersAPI } from '../../lib/api';
 import { useRouter } from 'expo-router';
+import Avatar from '../../components/Avatar';
+
+const formatRelativeTime = (dateStr) => {
+  if (!dateStr) return '';
+  const now = Date.now();
+  const d = new Date(dateStr).getTime();
+  const diff = now - d;
+  if (diff < 60000) return 'now';
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h`;
+  return new Date(dateStr).toLocaleDateString([], { month: 'short', day: 'numeric' });
+};
 
 export default function HomeScreen() {
   const { user, logout } = useAuth();
@@ -15,13 +28,20 @@ export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
-  
   const router = useRouter();
 
   const fetchRooms = useCallback(async () => {
     try {
+      const cached = await AsyncStorage.getItem('CACHE_ROOMS');
+      if (cached) {
+        setRooms(JSON.parse(cached));
+        setLoading(false);
+      }
+      
       const { data } = await roomsAPI.getAll();
-      setRooms(data.rooms || []);
+      const fetchedRooms = data.rooms || data || [];
+      setRooms(fetchedRooms);
+      AsyncStorage.setItem('CACHE_ROOMS', JSON.stringify(fetchedRooms));
     } catch (err) {
       console.warn('Failed to fetch rooms', err);
     } finally {
@@ -70,7 +90,7 @@ export default function HomeScreen() {
 
   const getPeer = (room) => {
     if (room.type === 'group') return null;
-    return room.members?.find(m => (m._id ?? m) !== user._id);
+    return room.members?.find(m => (m._id ?? m) !== user?._id);
   };
 
   const getRoomName = (room, peer) => {
@@ -79,21 +99,11 @@ export default function HomeScreen() {
   };
 
   const getAvatarColor = (name) => {
+    // Kept for backward compatibility if needed, but Avatar component handles it
     const colors = ['#1A73E8', '#EA4335', '#34A853', '#FBBC04', '#8E24AA', '#E91E63', '#00ACC1', '#FF7043'];
     let hash = 0;
     for (let i = 0; i < (name || '').length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
     return colors[Math.abs(hash) % colors.length];
-  };
-
-  const formatRelativeTime = (dateStr) => {
-    if (!dateStr) return '';
-    const now = Date.now();
-    const d = new Date(dateStr).getTime();
-    const diff = now - d;
-    if (diff < 60000) return 'now';
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h`;
-    return new Date(dateStr).toLocaleDateString([], { month: 'short', day: 'numeric' });
   };
 
   const renderRoomItem = ({ item }) => {
@@ -104,16 +114,32 @@ export default function HomeScreen() {
     const lastMsg = item.lastMessage;
     const avatarColor = peer?.avatarColor || getAvatarColor(roomName);
 
+    const handleLongPress = () => {
+      Alert.alert(
+        'Chat Options',
+        `Manage chat with ${roomName}`,
+        [
+          { text: 'Pin Chat', onPress: () => console.log('Pinned') },
+          { text: 'Mute Notifications', onPress: async () => {
+             try { await roomsAPI.mute(item._id); Alert.alert('Success', 'Chat muted'); } catch(e){}
+          }},
+          { text: 'Archive', onPress: async () => {
+             try { await roomsAPI.archive(item._id); fetchRooms(); } catch(e){}
+          }},
+          { text: 'Cancel', style: 'cancel' }
+        ]
+      );
+    };
+
     return (
       <TouchableOpacity 
         style={styles.roomItem}
         onPress={() => router.push(`/chat/${item._id}`)}
+        onLongPress={handleLongPress}
         activeOpacity={0.7}
       >
         <View style={styles.avatarContainer}>
-          <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
-            <Text style={styles.avatarText}>{roomName.substring(0, 2).toUpperCase()}</Text>
-          </View>
+          <Avatar url={item.type === 'group' ? item.avatar : peer?.avatar} name={roomName} color={avatarColor} size={48} />
           {isOnline && <View style={styles.onlineDot} />}
         </View>
         <View style={styles.roomInfo}>
@@ -150,9 +176,7 @@ export default function HomeScreen() {
         activeOpacity={0.7}
       >
         <View style={styles.avatarContainer}>
-          <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
-            <Text style={styles.avatarText}>{item.name.substring(0, 2).toUpperCase()}</Text>
-          </View>
+          <Avatar url={item.avatar} name={item.name} color={avatarColor} size={48} />
           {isOnline && <View style={styles.onlineDot} />}
         </View>
         <View style={styles.roomInfo}>

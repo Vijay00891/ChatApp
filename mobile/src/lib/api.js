@@ -53,6 +53,8 @@ export const roomsAPI = {
   update: (roomId, data) => api.put(`/rooms/${roomId}`, data),
   addMember: (roomId, userId) => api.post(`/rooms/${roomId}/members`, { userId }),
   removeMember: (roomId, userId) => api.delete(`/rooms/${roomId}/members/${userId}`),
+  archive: (id) => api.post(`/rooms/${id}/archive`),
+  mute: (id) => api.post(`/rooms/${id}/mute`),
 };
 
 export const notificationsAPI = {
@@ -69,4 +71,10 @@ export const messagesAPI = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+};
+
+export const statusAPI = {
+  create: (data) => api.post('/status', data),
+  getAll: () => api.get('/status'),
+  view: (id) => api.post(`/status/${id}/view`),
 };

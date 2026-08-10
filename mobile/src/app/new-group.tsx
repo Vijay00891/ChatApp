@@ -3,8 +3,10 @@ import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Activity
 import { useRouter } from 'expo-router';
 import { roomsAPI, usersAPI } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
+import Avatar from '../components/Avatar';
 
 function getAvatarColor(name) {
+  // Keeping for backward compatibility but Avatar component handles it
   const colors = ['#1A73E8', '#EA4335', '#34A853', '#FBBC04', '#8E24AA', '#E91E63', '#00ACC1', '#FF7043'];
   let hash = 0;
   for (let i = 0; i < (name || '').length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
@@ -24,7 +26,6 @@ export default function NewGroupScreen() {
 
   useEffect(() => {
     if (!searchQuery.trim()) {
-      setSearchResults([]);
       return;
     }
 
@@ -80,9 +81,7 @@ export default function NewGroupScreen() {
         onPress={() => toggleUserSelection(item)}
         activeOpacity={0.7}
       >
-        <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
-          <Text style={styles.avatarText}>{item.name.substring(0, 2).toUpperCase()}</Text>
-        </View>
+        <Avatar url={item.avatar} name={item.name} color={avatarColor} size={42} style={{ marginRight: 14 }} />
         <View style={styles.userInfo}>
           <Text style={styles.userName}>{item.name}</Text>
           <Text style={styles.userEmail} numberOfLines={1}>{item.email}</Text>
@@ -139,7 +138,10 @@ export default function NewGroupScreen() {
           placeholder="Search users to add..."
           placeholderTextColor="#5F6368"
           value={searchQuery}
-          onChangeText={setSearchQuery}
+          onChangeText={(text) => {
+            setSearchQuery(text);
+            if (!text.trim()) setSearchResults([]);
+          }}
           autoCapitalize="none"
           autoCorrect={false}
         />

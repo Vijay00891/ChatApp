@@ -1,11 +1,16 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Image, Modal, Pressable } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Modal, Pressable } from 'react-native';
+import { Image } from 'expo-image';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+import { Audio } from 'expo-av';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
 import { messagesAPI, roomsAPI } from '../../lib/api';
 import { useWebRTCContext } from '../../components/WebRTCWrapper';
+import Avatar from '../../components/Avatar';
 
 const EMOJI_LIST = ['😀','😂','😍','🥺','😎','🤔','👍','❤️','🎉','🔥','✨','😢','🙏','😅','🤣','💯'];
 
@@ -27,6 +32,7 @@ function formatDateDivider(dateStr) {
 }
 
 function getAvatarColor(name) {
+  // Keeping for backward compatibility but Avatar component is primary
   const colors = ['#1A73E8', '#EA4335', '#34A853', '#FBBC04', '#8E24AA', '#E91E63', '#00ACC1', '#FF7043'];
   let hash = 0;
   for (let i = 0; i < (name || '').length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
@@ -46,6 +52,160 @@ function groupMessagesWithDates(messages) {
   });
   return result;
 }
+
+const AudioMessage = React.memo(({ url, isMe }) => {
+  const [sound, setSound] = useState();
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [localUri, setLocalUri] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const downloadAndCache = async () => {
+      if (!url) return;
+      try {
+        const filename = url.substring(url.lastIndexOf('/') + 1);
+        const fileUri = `${FileSystem.documentDirectory}${filename}`;
+        const fileInfo = await FileSystem.getInfoAsync(fileUri);
+        
+        if (fileInfo.exists) {
+          if (isMounted) setLocalUri(fileUri);
+        } else {
+          const downloadResult = await FileSystem.downloadAsync(url, fileUri);
+          if (isMounted) setLocalUri(downloadResult.uri);
+        }
+      } catch (err) {
+        console.warn('Audio cache error', err);
+      }
+    };
+    downloadAndCache();
+
+    return () => { isMounted = false; };
+  }, [url]);
+
+  const togglePlayback = async () => {
+    try {
+      if (sound) {
+        if (isPlaying) {
+          await sound.pauseAsync();
+          setIsPlaying(false);
+        } else {
+          await sound.playAsync();
+          setIsPlaying(true);
+        }
+      } else {
+        const uriToPlay = localUri || url;
+        const { sound: newSound } = await Audio.Sound.createAsync(
+          { uri: uriToPlay },
+          { shouldPlay: true }
+        );
+        newSound.setOnPlaybackStatusUpdate((status) => {
+          if (status.didJustFinish) setIsPlaying(false);
+        });
+        setSound(newSound);
+        setIsPlaying(true);
+      }
+    } catch (err) {
+      console.warn('Playback error', err);
+    }
+  };
+
+  useEffect(() => {
+    return sound ? () => { sound.unloadAsync(); } : undefined;
+  }, [sound]);
+
+  return (
+    <View style={[styles.audioContainer, isMe ? styles.myAudio : styles.theirAudio]}>
+      <TouchableOpacity onPress={togglePlayback} style={styles.playButton}>
+        <Text style={styles.playIcon}>{isPlaying ? '⏸' : '▶️'}</Text>
+      </TouchableOpacity>
+      <View style={styles.audioWaveform}>
+        <View style={styles.waveformLine} />
+      </View>
+    </View>
+  );
+});
+
+const MessageItem = React.memo(({ item, user, room, messages, setSelectedMessage, handleReact }) => {
+  if (item.type === 'date_divider') {
+    return (
+      <View style={styles.dateDivider}>
+        <View style={styles.dateLine} />
+        <Text style={styles.dateText}>{formatDateDivider(item.date)}</Text>
+        <View style={styles.dateLine} />
+      </View>
+    );
+  }
+
+  const isMe = user ? (item.senderId === user._id || item.senderId?._id === user._id) : false;
+  const senderName = typeof item.senderId === 'object' ? item.senderId?.name : null;
+  const showSender = !isMe && room?.type === 'group' && senderName;
+  const senderColor = getAvatarColor(senderName || '');
+  const reactions = item.reactions || {};
+  const reactionEntries = Object.entries(reactions);
+
+  const repliedMsg = item.replyTo
+    ? messages.find(m => m._id === (typeof item.replyTo === 'object' ? item.replyTo._id : item.replyTo))
+    : null;
+
+  return (
+    <Pressable
+      onLongPress={() => setSelectedMessage(item)}
+      style={[styles.messageRow, isMe ? styles.messageRowRight : styles.messageRowLeft]}
+    >
+      <View style={[styles.messageBubble, isMe ? styles.myMessage : styles.theirMessage]}>
+        {showSender && (
+          <Text style={[styles.senderName, { color: senderColor }]}>{senderName}</Text>
+        )}
+
+        {repliedMsg && (
+          <View style={styles.replyPreview}>
+            <Text style={styles.replyPreviewName}>
+              {typeof repliedMsg.senderId === 'object' ? repliedMsg.senderId?.name : 'User'}
+            </Text>
+            <Text style={styles.replyPreviewText} numberOfLines={1}>
+              {repliedMsg.type === 'image' ? '📷 Photo' : repliedMsg.content}
+            </Text>
+          </View>
+        )}
+
+        {item.type === 'image' ? (
+          <Image source={{ uri: item.content }} style={styles.messageImage} contentFit="cover" transition={200} />
+        ) : item.type === 'audio' ? (
+          <AudioMessage url={item.content} isMe={isMe} />
+        ) : (
+          <Text style={[styles.messageText, isMe ? styles.myMessageText : styles.theirMessageText]}>
+            {item.content}
+          </Text>
+        )}
+
+        <View style={styles.metaRow}>
+          <Text style={[styles.timeStamp, isMe ? styles.myTimeStamp : styles.theirTimeStamp]}>
+            {formatTime(item.createdAt)}
+          </Text>
+          {isMe && (
+            <Text style={styles.readReceipt}>
+              {item.readBy?.length > 1 ? '✓✓' : '✓'}
+            </Text>
+          )}
+        </View>
+
+        {reactionEntries.length > 0 && (
+          <View style={styles.reactionsContainer}>
+            {reactionEntries.map(([emoji, users]) => (
+              <TouchableOpacity
+                key={emoji}
+                style={styles.reactionBadge}
+                onPress={() => handleReact(emoji)}
+              >
+                <Text style={styles.reactionText}>{emoji} {users.length}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      </View>
+    </Pressable>
+  );
+});
 
 export default function ChatScreen() {
   const { id } = useLocalSearchParams();
@@ -74,7 +234,7 @@ export default function ChatScreen() {
 
   // Derived room info
   const peer = room?.type === 'dm'
-    ? room.members?.find(m => (m._id ?? m) !== user._id)
+    ? room.members?.find(m => (m._id ?? m) !== user?._id)
     : null;
   const roomName = room?.name || (room?.type === 'group' ? 'Group Chat' : peer?.name ?? 'Chat');
   const peerOnline = peer ? isUserOnline(peer._id) : false;
@@ -82,13 +242,22 @@ export default function ChatScreen() {
   useEffect(() => {
     const fetchRoomAndMessages = async () => {
       try {
+        const cacheKey = `CACHE_MESSAGES_${id}`;
+        const cachedMsg = await AsyncStorage.getItem(cacheKey);
+        if (cachedMsg) {
+          setMessages(JSON.parse(cachedMsg));
+          setLoading(false);
+        }
+
         const roomRes = await roomsAPI.getAll();
         const rooms = roomRes.data.rooms || roomRes.data || [];
         const currentRoom = rooms.find(r => r._id === id);
         setRoom(currentRoom);
 
         const msgRes = await messagesAPI.getByRoom(id, 1);
-        setMessages(msgRes.data.reverse());
+        const fetchedMessages = msgRes.data.messages || [];
+        setMessages(fetchedMessages);
+        AsyncStorage.setItem(cacheKey, JSON.stringify(fetchedMessages));
       } catch (err) {
         console.warn('Failed to load messages or room', err);
       } finally {
@@ -182,17 +351,25 @@ export default function ChatScreen() {
   const handlePickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
         allowsEditing: true, quality: 0.7,
       });
       if (!result.canceled && result.assets?.length > 0) {
         setUploading(true);
-        const imageUrl = await uploadToCloudinary(result.assets[0].uri);
-        emit('send_message', { roomId: id, content: imageUrl, type: 'image' });
+        const asset = result.assets[0];
+        if (asset.type === 'video' || asset.uri.endsWith('.mp4')) {
+           // For video, we should use backend upload
+           const file = { uri: asset.uri, type: 'video/mp4', name: 'video.mp4' };
+           const res = await messagesAPI.uploadAttachment(file);
+           emit('send_message', { roomId: id, content: res.data.url, type: 'video' });
+        } else {
+           const imageUrl = await uploadToCloudinary(asset.uri);
+           emit('send_message', { roomId: id, content: imageUrl, type: 'image' });
+        }
       }
     } catch (err) {
       console.warn('Failed to pick or upload image', err);
-      alert('Image upload failed');
+      alert('Image/Video upload failed');
     } finally {
       setUploading(false);
     }
@@ -233,87 +410,16 @@ export default function ChatScreen() {
     if (peer) startCall(peer, type);
   };
 
-  const renderItem = ({ item, index }) => {
-    // Date divider
-    if (item.type === 'date_divider') {
-      return (
-        <View style={styles.dateDivider}>
-          <View style={styles.dateLine} />
-          <Text style={styles.dateText}>{formatDateDivider(item.date)}</Text>
-          <View style={styles.dateLine} />
-        </View>
-      );
-    }
-
-    const isMe = item.senderId === user._id || item.senderId?._id === user._id;
-    const senderName = typeof item.senderId === 'object' ? item.senderId?.name : null;
-    const showSender = !isMe && room?.type === 'group' && senderName;
-    const senderColor = getAvatarColor(senderName || '');
-    const reactions = item.reactions || {};
-    const reactionEntries = Object.entries(reactions);
-
-    // Reply reference
-    const repliedMsg = item.replyTo
-      ? messages.find(m => m._id === (typeof item.replyTo === 'object' ? item.replyTo._id : item.replyTo))
-      : null;
-
-    return (
-      <Pressable
-        onLongPress={() => setSelectedMessage(item)}
-        style={[styles.messageRow, isMe ? styles.messageRowRight : styles.messageRowLeft]}
-      >
-        <View style={[styles.messageBubble, isMe ? styles.myMessage : styles.theirMessage]}>
-          {showSender && (
-            <Text style={[styles.senderName, { color: senderColor }]}>{senderName}</Text>
-          )}
-
-          {repliedMsg && (
-            <View style={styles.replyPreview}>
-              <Text style={styles.replyPreviewName}>
-                {typeof repliedMsg.senderId === 'object' ? repliedMsg.senderId?.name : 'User'}
-              </Text>
-              <Text style={styles.replyPreviewText} numberOfLines={1}>
-                {repliedMsg.type === 'image' ? '📷 Photo' : repliedMsg.content}
-              </Text>
-            </View>
-          )}
-
-          {item.type === 'image' ? (
-            <Image source={{ uri: item.content }} style={styles.messageImage} resizeMode="cover" />
-          ) : (
-            <Text style={[styles.messageText, isMe ? styles.myMessageText : styles.theirMessageText]}>
-              {item.content}
-            </Text>
-          )}
-
-          <View style={styles.metaRow}>
-            <Text style={[styles.timeStamp, isMe ? styles.myTimeStamp : styles.theirTimeStamp]}>
-              {formatTime(item.createdAt)}
-            </Text>
-            {isMe && (
-              <Text style={styles.readReceipt}>
-                {item.readBy?.length > 1 ? '✓✓' : '✓'}
-              </Text>
-            )}
-          </View>
-
-          {reactionEntries.length > 0 && (
-            <View style={styles.reactionsContainer}>
-              {reactionEntries.map(([emoji, users]) => (
-                <TouchableOpacity
-                  key={emoji}
-                  style={styles.reactionBadge}
-                  onPress={() => handleReact(emoji)}
-                >
-                  <Text style={styles.reactionText}>{emoji} {users.length}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </View>
-      </Pressable>
-    );
-  };
+  const renderItem = useCallback(({ item }) => (
+    <MessageItem
+      item={item}
+      user={user}
+      room={room}
+      messages={messages}
+      setSelectedMessage={setSelectedMessage}
+      handleReact={handleReact}
+    />
+  ), [user, room, messages, handleReact]);
 
   const processedMessages = groupMessagesWithDates(messages);
 
@@ -329,8 +435,8 @@ export default function ChatScreen() {
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <View style={[styles.headerAvatar, { backgroundColor: peer?.avatarColor || getAvatarColor(roomName) }]}>
-            <Text style={styles.headerAvatarText}>{roomName.substring(0, 2).toUpperCase()}</Text>
+          <View style={styles.headerAvatarContainer}>
+            <Avatar url={room?.type === 'group' ? room?.avatar : peer?.avatar} name={roomName} color={peer?.avatarColor} size={36} />
           </View>
           <View>
             <Text style={styles.headerTitle} numberOfLines={1}>{roomName}</Text>
@@ -451,8 +557,7 @@ const styles = StyleSheet.create({
   backButton: { padding: 8, marginRight: 4 },
   backText: { fontSize: 22, color: '#1A73E8' },
   headerCenter: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-  headerAvatar: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginRight: 10 },
-  headerAvatarText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
+  headerAvatarContainer: { marginRight: 10 },
   headerTitle: { fontSize: 16, fontWeight: '600', color: '#202124' },
   typingText: { fontSize: 12, color: '#1A73E8', fontStyle: 'italic' },
   onlineText: { fontSize: 12, color: '#34A853' },
@@ -490,6 +595,15 @@ const styles = StyleSheet.create({
   myTimeStamp: { color: '#5F6368' },
   theirTimeStamp: { color: '#5F6368' },
   readReceipt: { fontSize: 12, color: '#1A73E8', marginLeft: 2 },
+
+  // Audio Player
+  audioContainer: { flexDirection: 'row', alignItems: 'center', width: 160, paddingVertical: 4 },
+  myAudio: {},
+  theirAudio: {},
+  playButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#1A73E8', justifyContent: 'center', alignItems: 'center', marginRight: 10 },
+  playIcon: { color: '#FFF', fontSize: 16, marginLeft: 2 },
+  audioWaveform: { flex: 1, height: 2, backgroundColor: '#A8C7FA', justifyContent: 'center' },
+  waveformLine: { width: '50%', height: 2, backgroundColor: '#1A73E8' },
 
   // Date dividers
   dateDivider: { flexDirection: 'row', alignItems: 'center', marginVertical: 12, paddingHorizontal: 10 },

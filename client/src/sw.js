@@ -1,3 +1,4 @@
+/* eslint-env serviceworker */
 import { precacheAndRoute } from 'workbox-precaching';
 import { registerRoute } from 'workbox-routing';
 import { CacheFirst, StaleWhileRevalidate, NetworkFirst } from 'workbox-strategies';
@@ -71,7 +72,7 @@ self.addEventListener('push', (event) => {
   if (event.data) {
     try {
       payload = event.data.json();
-    } catch (e) {
+    } catch {
       payload.body = event.data.text();
     }
   }

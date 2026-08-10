@@ -49,7 +49,8 @@
           "cameraPermission": "The app accesses your camera for video calls.",
           "microphonePermission": "The app accesses your microphone for audio/video calls."
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

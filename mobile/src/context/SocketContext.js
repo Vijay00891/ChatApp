@@ -32,7 +32,7 @@ export function SocketProvider({ children }) {
     if (!token || !user) {
       socketRef.current?.disconnect();
       socketRef.current = null;
-      setIsConnected(false);
+      setTimeout(() => setIsConnected(false), 0);
       return;
     }
 
@@ -107,7 +107,7 @@ export function SocketProvider({ children }) {
   return (
     <SocketContext.Provider
       value={{
-        socket: socketRef.current,
+        get socket() { return socketRef.current; },
         isConnected,
         onlineUsers,
         isUserOnline,

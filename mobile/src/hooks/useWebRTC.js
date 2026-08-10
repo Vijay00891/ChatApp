@@ -41,6 +41,34 @@ export function useWebRTC() {
   const callTimerRef = useRef(null);
   const remoteUserRef = useRef(null);
 
+  const cleanup = useCallback(() => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((track) => track.stop());
+      localStreamRef.current = null;
+    }
+
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.close();
+      peerConnectionRef.current = null;
+    }
+
+    if (callTimerRef.current) {
+      clearInterval(callTimerRef.current);
+      callTimerRef.current = null;
+    }
+
+    setLocalStream(null);
+    setRemoteStream(null);
+    setCallState('idle');
+    setCallType(null);
+    setRemoteUser(null);
+    setIsMicOn(true);
+    setIsCameraOn(true);
+    setCallDuration(0);
+    remoteUserRef.current = null;
+    pendingCandidates.current = [];
+  }, []);
+
   const getLocalStream = useCallback(async (type) => {
     try {
       const isVideo = type === 'video';
@@ -108,35 +136,9 @@ export function useWebRTC() {
     };
 
     return pc;
-  }, [emit]);
+  }, [emit, cleanup]);
 
-  const cleanup = useCallback(() => {
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track) => track.stop());
-      localStreamRef.current = null;
-    }
 
-    if (peerConnectionRef.current) {
-      peerConnectionRef.current.close();
-      peerConnectionRef.current = null;
-    }
-
-    if (callTimerRef.current) {
-      clearInterval(callTimerRef.current);
-      callTimerRef.current = null;
-    }
-
-    setLocalStream(null);
-    setRemoteStream(null);
-    setCallState('idle');
-    setCallType(null);
-    setRemoteUser(null);
-    setIsMicOn(true);
-    setIsCameraOn(true);
-    setCallDuration(0);
-    remoteUserRef.current = null;
-    pendingCandidates.current = [];
-  }, []);
 
   const startCallTimer = useCallback(() => {
     if (callTimerRef.current) {

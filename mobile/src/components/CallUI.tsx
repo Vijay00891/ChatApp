@@ -1,5 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import Avatar from './Avatar';
 
 let RTCView = null;
 try {
@@ -31,9 +33,7 @@ export default function CallUI({
     return (
       <View style={styles.overlay}>
         <View style={styles.incomingContainer}>
-          <View style={[styles.incomingAvatar, { backgroundColor: getAvatarColor(remoteUser?.name) }]}>
-            <Text style={styles.incomingAvatarText}>{remoteUser?.name?.substring(0, 2).toUpperCase()}</Text>
-          </View>
+          <Avatar url={remoteUser?.avatar} name={remoteUser?.name} color={getAvatarColor(remoteUser?.name)} size={80} style={{ marginBottom: 16 }} textStyle={{ fontSize: 30 }} />
           <Text style={styles.incomingTitle}>Incoming {callType} call</Text>
           <Text style={styles.remoteUserName}>{remoteUser?.name}</Text>
           <View style={styles.buttonRow}>
@@ -64,11 +64,9 @@ export default function CallUI({
       )}
 
       {callType === 'audio' && (
-        <View style={styles.audioContainer}>
-          <View style={[styles.audioAvatar, { backgroundColor: getAvatarColor(remoteUser?.name) }]}>
-            <Text style={styles.audioAvatarText}>{remoteUser?.name?.substring(0, 2).toUpperCase()}</Text>
-          </View>
-          <Text style={styles.audioName}>{remoteUser?.name}</Text>
+        <View style={styles.audioViewContent}>
+          <Avatar url={remoteUser?.avatar} name={remoteUser?.name} color={getAvatarColor(remoteUser?.name)} size={120} style={{ marginBottom: 20 }} textStyle={{ fontSize: 42 }} />
+          <Text style={styles.audioViewTitle}>{remoteUser?.name}</Text>
         </View>
       )}
 
