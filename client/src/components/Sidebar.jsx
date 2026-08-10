@@ -463,17 +463,6 @@ export default memo(function Sidebar({
                 >
                   <span>👥</span> New Group
                 </button>
-                <button
-                  onClick={() => {
-                    setHeaderMenuOpen(false);
-                    logout();
-                  }}
-                  className="w-full text-left px-3 py-2 hover:bg-hover-bg text-error 
-                             flex items-center gap-2 transition-colors duration-150 border-t border-border-color"
-                >
-                  <LogOut size={13} />
-                  <span>Sign out</span>
-                </button>
               </div>
             )}
           </div>
