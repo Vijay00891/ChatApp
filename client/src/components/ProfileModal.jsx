@@ -1,11 +1,11 @@
 import React, { useRef, useState } from 'react';
 import Avatar from './Avatar';
-import { Camera, X, Loader2 } from 'lucide-react';
+import { Camera, X, Loader2, LogOut } from 'lucide-react';
 import { usersAPI } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 
 export default function ProfileModal({ isOpen, onClose }) {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -112,6 +112,17 @@ export default function ProfileModal({ isOpen, onClose }) {
           <div className="w-full text-center">
             <h3 className="text-2xl font-bold text-text mb-1">{user.name}</h3>
             <p className="text-subtle-text mb-6">{user.email}</p>
+            
+            <button
+              onClick={() => {
+                logout();
+                onClose();
+              }}
+              className="flex items-center justify-center w-full gap-2 px-4 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-semibold rounded-xl transition-colors"
+            >
+              <LogOut className="w-5 h-5" />
+              <span>Log Out</span>
+            </button>
           </div>
         </div>
       </div>
