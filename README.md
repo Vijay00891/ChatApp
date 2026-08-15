@@ -373,11 +373,6 @@ npm run preview      # Preview production build
 
 ---
 
-## 📄 License
-
-MIT License — see [LICENSE](LICENSE) for details.
-
----
 
 ## 👨‍💻 Author
 
