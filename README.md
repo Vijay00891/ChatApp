@@ -1,4 +1,4 @@
-# 💬 NexChat — Real-Time Encrypted Chat App
+#  NexChat — Real-Time Encrypted Chat App
 
 A production-grade, full-stack real-time chat application built with the MERN stack. Features end-to-end encryption, offline-first architecture, MQTT messaging, and a Google Material Design 3 inspired UI.
 
